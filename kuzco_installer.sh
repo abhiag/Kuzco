@@ -3,8 +3,10 @@
 KUZCO_DIR="$HOME/.kuzco"
 WORKER_FILE="$KUZCO_DIR/worker_info"
 
-# Create Kuzco directory if not exists
-mkdir -p "$KUZCO_DIR"
+# Ensure all required dependencies are installed
+echo "🔧 Installing required packages..."
+sudo apt update
+sudo apt install -y gnupg lsb-release wget curl
 
 # Function to check NVIDIA GPU
 check_nvidia_gpu() {
@@ -30,13 +32,11 @@ check_cuda() {
 # Function to install NVIDIA Container Toolkit
 install_nvidia_container_toolkit() {
     echo "🔧 Installing NVIDIA Container Toolkit..."
-    sudo apt update
     sudo apt install -y nvidia-container-toolkit
-    sudo systemctl restart docker || sudo systemctl restart nvidia-container-runtime
     echo "✅ NVIDIA Container Toolkit installed!"
 }
 
-# Function to install CUDA (Latest Version)
+# Function to install CUDA
 install_cuda() {
     echo "🔧 Installing CUDA..."
 
