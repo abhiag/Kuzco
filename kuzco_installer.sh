@@ -226,10 +226,25 @@ restart_worker() {
         sudo systemctl restart kuzco.service || handle_error "Failed to restart Kuzco Worker"
     else
         log_message "🔧 Restarting Kuzco Worker directly (non-systemd system)..."
-        stop_worker
-        start_kuzco_worker
+
+        # Stop the worker if it is running
+        if pgrep -f "kuzco worker" > /dev/null; then
+            log_message "🔧 Stopping Kuzco Worker..."
+            pkill -f "kuzco worker" || handle_error "Failed to stop Kuzco Worker"
+            log_message "✅ Kuzco Worker stopped."
+        else
+            log_message "⚠️ Kuzco Worker is not running. Starting it now..."
+        fi
+
+        # Start the worker using nohup
+        log_message "🔧 Starting Kuzco Worker using nohup..."
+        nohup kuzco worker start --worker "$WORKER_ID" --code "$REGISTRATION_CODE" > "$KUZCO_DIR/kuzco.log" 2>&1 &
+        if [ $? -eq 0 ]; then
+            log_message "✅ Kuzco Worker restarted!"
+        else
+            handle_error "Failed to restart Kuzco Worker"
+        fi
     fi
-    log_message "✅ Kuzco Worker restarted!"
 }
 
 # Function to view Kuzco worker logs
