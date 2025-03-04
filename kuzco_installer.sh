@@ -192,6 +192,7 @@ while true; do
             install_nvidia_container_toolkit
             setup_cuda_env
             install_cuda
+            setup_cuda_env
             install_kuzco
             start_kuzco_worker
             ;;
