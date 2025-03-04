@@ -55,18 +55,26 @@ UBUNTU_VERSION=$(lsb_release -rs)
 
 if [[ -d "/mnt/wsl" ]]; then
     echo "🚀 Installing CUDA for WSL..."
-    wget https://developer.download.nvidia.com/compute/cuda/repos/wsl-ubuntu/x86_64/cuda-wsl-ubuntu.pin
-    sudo mv cuda-wsl-ubuntu.pin /etc/apt/preferences.d/cuda-repository-pin-600
-    wget https://developer.download.nvidia.com/compute/cuda/repos/wsl-ubuntu/x86_64/cuda-repo-wsl-ubuntu-12-2-local_12.2.2-1_amd64.deb
-    sudo dpkg -i cuda-repo-wsl-ubuntu-12-2-local_12.2.2-1_amd64.deb
-    sudo cp /var/cuda-repo-wsl-ubuntu-12-2-local/cuda-*-keyring.gpg /usr/share/keyrings/
+    CUDA_REPO_URL="https://developer.download.nvidia.com/compute/cuda/repos/wsl-ubuntu/x86_64"
+    CUDA_DEB=$(curl -s $CUDA_REPO_URL/ | grep -o 'cuda-repo-wsl-ubuntu-[0-9-]*_amd64.deb' | sort -V | tail -n 1)
+    if [[ -z "$CUDA_DEB" ]]; then
+        echo "❌ Failed to find a valid CUDA package for WSL! Exiting..."
+        exit 1
+    fi
+    wget $CUDA_REPO_URL/$CUDA_DEB
+    sudo dpkg -i $CUDA_DEB
+    sudo cp /var/cuda-repo-wsl-ubuntu-*/cuda-*-keyring.gpg /usr/share/keyrings/
 elif [[ "$UBUNTU_VERSION" == "24.04" ]]; then
     echo "🚀 Installing CUDA for Ubuntu 24.04..."
-    wget https://developer.download.nvidia.com/compute/cuda/repos/ubuntu2404/x86_64/cuda-ubuntu2404.pin
-    sudo mv cuda-ubuntu2404.pin /etc/apt/preferences.d/cuda-repository-pin-600
-    wget https://developer.download.nvidia.com/compute/cuda/12.2.2/local_installers/cuda-repo-ubuntu2404-12-2-local_12.2.2-1_amd64.deb
-    sudo dpkg -i cuda-repo-ubuntu2404-12-2-local_12.2.2-1_amd64.deb
-    sudo cp /var/cuda-repo-ubuntu2404-12-2-local/cuda-*-keyring.gpg /usr/share/keyrings/
+    CUDA_REPO_URL="https://developer.download.nvidia.com/compute/cuda/repos/ubuntu2404/x86_64"
+    CUDA_DEB=$(curl -s $CUDA_REPO_URL/ | grep -o 'cuda-repo-ubuntu2404-[0-9-]*_amd64.deb' | sort -V | tail -n 1)
+    if [[ -z "$CUDA_DEB" ]]; then
+        echo "❌ Failed to find a valid CUDA package for Ubuntu 24.04! Exiting..."
+        exit 1
+    fi
+    wget $CUDA_REPO_URL/$CUDA_DEB
+    sudo dpkg -i $CUDA_DEB
+    sudo cp /var/cuda-repo-ubuntu2404-*/cuda-*-keyring.gpg /usr/share/keyrings/
 else
     echo "❌ Unsupported OS version! Exiting..."
     exit 1
