@@ -65,7 +65,7 @@ start_worker() {
     fi
 
     log_message "🚀 Starting Kuzco Worker..."
-    kuzco worker start --worker "$WORKER_ID" --code "$REGISTRATION_CODE" &>> "$LOG_FILE" &
+    sudo kuzco worker start --worker "$WORKER_ID" --code "$REGISTRATION_CODE" &>> "$LOG_FILE" &
     log_message "✅ Kuzco Worker started!"
 }
 
