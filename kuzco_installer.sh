@@ -19,6 +19,33 @@ handle_error() {
     exit 1
 }
 
+# Function to check and install required tools (lspci or lshw)
+install_tools() {
+    log_message "🔍 Checking for system tools..."
+    if ! command -v lspci &> /dev/null && ! command -v lshw &> /dev/null; then
+        log_message "⚠️ Neither 'lspci' nor 'lshw' found. Installing dependencies..."
+        sudo apt update
+        sudo apt install -y pciutils lshw || handle_error "Failed to install pciutils/lshw"
+    else
+        log_message "✅ 'lspci' or 'lshw' is already installed."
+    fi
+}
+
+# Function to detect NVIDIA GPU
+detect_nvidia_gpu() {
+    log_message "🔍 Detecting NVIDIA GPU..."
+    if command -v lspci &> /dev/null && lspci | grep -i nvidia &> /dev/null; then
+        log_message "✅ NVIDIA GPU detected (via lspci)."
+        return 0
+    elif command -v lshw &> /dev/null && sudo lshw -C display | grep -i nvidia &> /dev/null; then
+        log_message "✅ NVIDIA GPU detected (via lshw)."
+        return 0
+    else
+        log_message "❌ No NVIDIA GPU detected."
+        return 1
+    fi
+}
+
 # Function to install Kuzco CLI
 install_kuzco() {
     log_message "🔧 Installing Kuzco CLI..."
