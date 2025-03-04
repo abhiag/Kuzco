@@ -166,7 +166,8 @@ is_systemd() {
     fi
 }
 
-start_kuzco_worker() {
+# Function to start Kuzco worker
+start_worker() {
     if [[ -f "$WORKER_FILE" ]]; then
         source "$WORKER_FILE"
         log_message "✅ Using saved Worker ID: $WORKER_ID"
@@ -189,20 +190,6 @@ start_kuzco_worker() {
             log_message "✅ Kuzco Worker started!"
         else
             handle_error "Failed to start Kuzco Worker"
-        fi
-    fi
-}
-
-# Function to check Kuzco worker status
-check_worker_status() {
-    if is_systemd; then
-        sudo systemctl status kuzco.service || handle_error "Failed to check worker status"
-    else
-        log_message "🔧 Checking Kuzco Worker status directly (non-systemd system)..."
-        if pgrep -f "kuzco worker" > /dev/null; then
-            log_message "✅ Kuzco Worker is running."
-        else
-            log_message "❌ Kuzco Worker is not running."
         fi
     fi
 }
@@ -247,13 +234,27 @@ restart_worker() {
     fi
 }
 
+# Function to check Kuzco worker status
+check_worker_status() {
+    if is_systemd; then
+        sudo systemctl status kuzco.service || handle_error "Failed to check worker status"
+    else
+        log_message "🔧 Checking Kuzco Worker status directly (non-systemd system)..."
+        if pgrep -f "kuzco worker" > /dev/null; then
+            log_message "✅ Kuzco Worker is running."
+        else
+            log_message "❌ Kuzco Worker is not running."
+        fi
+    fi
+}
+
 # Function to view Kuzco worker logs
 view_worker_logs() {
     if is_systemd; then
         sudo journalctl -u kuzco.service || handle_error "Failed to view worker logs"
     else
         log_message "🔧 Viewing Kuzco Worker logs directly (non-systemd system)..."
-        sudo tail -n 100 /var/log/kuzco.log || handle_error "Failed to view worker logs"
+        sudo tail -n 100 "$KUZCO_DIR/kuzco.log" || handle_error "Failed to view worker logs"
     fi
 }
 
@@ -262,7 +263,7 @@ while true; do
     echo "======================================"
     echo "🚀 Kuzco Manager - GPU & CUDA Ready 🚀"
     echo "======================================"
-    echo "1) Install Kuzco Worker Node"
+    echo "1) Start Worker"
     echo "2) Check Worker Status"
     echo "3) Stop Worker"
     echo "4) Restart Worker"
@@ -272,15 +273,7 @@ while true; do
     read -p "Choose an option: " choice
 
     case $choice in
-        1)
-            check_nvidia_gpu
-            if ! is_cuda_installed; then
-                setup_cuda_env
-                install_cuda
-            fi
-            install_kuzco
-            start_kuzco_worker
-            ;;
+        1) start_worker ;;
         2) check_worker_status ;;
         3) stop_worker ;;
         4) restart_worker ;;
