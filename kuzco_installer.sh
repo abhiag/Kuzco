@@ -2,7 +2,7 @@
 
 KUZCO_DIR="$HOME/.kuzco"
 WORKER_FILE="$KUZCO_DIR/worker_info"
-LOG_FILE="$KUZCO_DIR/kuzco.log"
+LOG_FILE="$KUZCO_DIR/kuzco_manager.log"
 
 # Ensure the Kuzco directory exists
 mkdir -p "$KUZCO_DIR"
