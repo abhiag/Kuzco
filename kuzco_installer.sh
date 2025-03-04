@@ -39,7 +39,7 @@ else
 fi
 
 # Install required packages only if not already installed
-REQUIRED_PACKAGES=(nvtop sudo curl wget htop systemd nohup fonts-noto-color-emoji)
+REQUIRED_PACKAGES=(nvtop sudo curl wget htop systemd fonts-noto-color-emoji)
 ALL_INSTALLED=true
 
 for pkg in "${REQUIRED_PACKAGES[@]}"; do
