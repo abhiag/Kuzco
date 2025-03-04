@@ -1,179 +1,160 @@
 #!/bin/bash
 
-CONFIG_DIR="$HOME/.kuzco"
-CONFIG_FILE="$CONFIG_DIR/config"
+KUZCO_DIR="$HOME/.kuzco"
+WORKER_FILE="$KUZCO_DIR/worker_info"
 
-# Function to check for an NVIDIA GPU
+# Create Kuzco directory if not exists
+mkdir -p "$KUZCO_DIR"
+
+# Function to check NVIDIA GPU
 check_nvidia_gpu() {
+    echo "🔍 Checking for NVIDIA GPU..."
     if ! command -v nvidia-smi &> /dev/null; then
-        echo "❌ NVIDIA GPU not detected. Make sure your drivers are installed."
+        echo "❌ NVIDIA GPU not detected! Install NVIDIA drivers first."
         exit 1
     fi
-
-    GPU_INFO=$(nvidia-smi --query-gpu=name --format=csv,noheader)
-    if [[ -z "$GPU_INFO" ]]; then
-        echo "❌ No NVIDIA GPU found! Ensure your GPU is properly connected."
-        exit 1
-    else
-        echo "✅ NVIDIA GPU detected: $GPU_INFO"
-    fi
+    echo "✅ NVIDIA GPU detected!"
 }
 
-# Function to check if CUDA is installed
+# Function to check CUDA
 check_cuda() {
+    echo "🔍 Checking for CUDA..."
     if ! command -v nvcc &> /dev/null; then
-        echo "⚠️ CUDA is not installed. Installing NVIDIA Container Toolkit..."
-        install_nvidia_container_toolkit
+        echo "❌ CUDA not installed! Installing CUDA..."
+        install_cuda
     else
-        CUDA_VERSION=$(nvcc --version | grep "release" | awk '{print $6}')
-        echo "✅ CUDA detected: $CUDA_VERSION"
+        echo "✅ CUDA is already installed!"
     fi
 }
-
-install_gpg() {
-    echo "🔧 Checking and installing GPG if missing..."
-    if ! command -v gpg &> /dev/null; then
-        sudo apt update && sudo apt install -y gnupg2 gnupg-agent
-    fi
-    if command -v gpg &> /dev/null; then
-        echo "✅ GPG installed successfully."
-    else
-        echo "❌ GPG installation failed. Exiting."
-        exit 1
-    fi
-}
-
-install_gpg
 
 # Function to install NVIDIA Container Toolkit
 install_nvidia_container_toolkit() {
-    echo "🔧 Installing GPG..."
-    sudo apt update && sudo apt install -y gnupg
+    echo "🔧 Installing NVIDIA Container Toolkit..."
+    sudo apt update
+    sudo apt install -y nvidia-container-toolkit
+    sudo systemctl restart docker || sudo systemctl restart nvidia-container-runtime
+    echo "✅ NVIDIA Container Toolkit installed!"
+}
 
-    echo "Installing NVIDIA Container Toolkit..."
-    
-    # Configure the repository
-    curl -fsSL https://nvidia.github.io/libnvidia-container/gpgkey | sudo gpg --dearmor -o /usr/share/keyrings/nvidia-container-toolkit-keyring.gpg \
-    && curl -s -L https://nvidia.github.io/libnvidia-container/stable/deb/nvidia-container-toolkit.list | \
-        sed 's#deb https://#deb [signed-by=/usr/share/keyrings/nvidia-container-toolkit-keyring.gpg] https://#g' | \
-        sudo tee /etc/apt/sources.list.d/nvidia-container-toolkit.list
+# Function to install CUDA (Latest Version)
+install_cuda() {
+    echo "🔧 Installing CUDA..."
 
-    # Optionally enable experimental packages
-    sed -i -e '/experimental/ s/^#//g' /etc/apt/sources.list.d/nvidia-container-toolkit.list
+    UBUNTU_VERSION=$(lsb_release -rs)
 
-    # Update package list
-    sudo apt-get update
+    if [[ "$UBUNTU_VERSION" == "24.04" ]]; then
+        echo "🚀 Installing CUDA for Ubuntu 24.04..."
+        wget https://developer.download.nvidia.com/compute/cuda/repos/ubuntu2404/x86_64/cuda-ubuntu2404.pin
+        sudo mv cuda-ubuntu2404.pin /etc/apt/preferences.d/cuda-repository-pin-600
 
-    # Install NVIDIA Container Toolkit
-    sudo apt-get install -y nvidia-container-toolkit
+        wget https://developer.download.nvidia.com/compute/cuda/12.2.2/local_installers/cuda-repo-ubuntu2404-12-2-local_12.2.2-1_amd64.deb
+        sudo dpkg -i cuda-repo-ubuntu2404-12-2-local_12.2.2-1_amd64.deb
+        sudo cp /var/cuda-repo-ubuntu2404-12-2-local/cuda-*-keyring.gpg /usr/share/keyrings/
 
-    echo "✅ NVIDIA Container Toolkit installed successfully."
+    elif [[ -d "/mnt/wsl" ]]; then
+        echo "🚀 Installing CUDA for WSL..."
+        wget https://developer.download.nvidia.com/compute/cuda/repos/wsl-ubuntu/x86_64/cuda-wsl-ubuntu.pin
+        sudo mv cuda-wsl-ubuntu.pin /etc/apt/preferences.d/cuda-repository-pin-600
+
+        wget https://developer.download.nvidia.com/compute/cuda/repos/wsl-ubuntu/x86_64/cuda-repo-wsl-ubuntu-12-2-local_12.2.2-1_amd64.deb
+        sudo dpkg -i cuda-repo-wsl-ubuntu-12-2-local_12.2.2-1_amd64.deb
+        sudo cp /var/cuda-repo-wsl-ubuntu-12-2-local/cuda-*-keyring.gpg /usr/share/keyrings/
+
+    else
+        echo "❌ Unsupported OS version! Exiting..."
+        exit 1
+    fi
+
+    sudo apt update
+    sudo apt install -y cuda
+    echo "✅ CUDA installed successfully!"
+}
+
+# Function to set environment variables
+set_cuda_env() {
+    echo "🔧 Setting CUDA environment variables..."
+    echo 'export PATH=/usr/local/cuda/bin:$PATH' >> ~/.bashrc
+    echo 'export LD_LIBRARY_PATH=/usr/local/cuda/lib64:$LD_LIBRARY_PATH' >> ~/.bashrc
+    echo 'export CUDA_HOME=/usr/local/cuda' >> ~/.bashrc
+    source ~/.bashrc
+    echo "✅ CUDA environment variables set!"
 }
 
 # Function to install Kuzco CLI
-install_kuzco_cli() {
-    echo "Installing Kuzco CLI..."
+install_kuzco() {
+    echo "🔧 Installing Kuzco CLI..."
     curl -fsSL https://inference.supply/install.sh | sh
-    echo "✅ Kuzco CLI installed successfully!"
+    echo "✅ Kuzco CLI installed!"
 }
 
-# Function to save worker credentials
-save_credentials() {
-    mkdir -p "$CONFIG_DIR"
-    echo "WORKER_ID=$WORKER_ID" > "$CONFIG_FILE"
-    echo "REG_CODE=$REG_CODE" >> "$CONFIG_FILE"
-}
-
-# Function to load worker credentials
-load_credentials() {
-    if [[ -f "$CONFIG_FILE" ]]; then
-        source "$CONFIG_FILE"
-        echo "🔹 Loaded saved Worker ID: $WORKER_ID"
+# Function to start Kuzco worker
+start_kuzco_worker() {
+    if [[ -f "$WORKER_FILE" ]]; then
+        source "$WORKER_FILE"
+        echo "✅ Using saved Worker ID: $WORKER_ID"
+        echo "✅ Using saved Registration Code: $REGISTRATION_CODE"
     else
-        return 1  # No credentials found
-    fi
-}
-
-# Function to install Kuzco Worker Node
-install_kuzco_worker() {
-    if ! load_credentials; then
-        read -p "Enter your Worker ID: " WORKER_ID
-        read -p "Enter your Registration Code: " REG_CODE
-
-        if [[ -z "$WORKER_ID" || -z "$REG_CODE" ]]; then
-            echo "❌ Error: Worker ID and Registration Code cannot be empty."
-            return
-        fi
-
-        save_credentials
+        read -p "Enter Worker ID: " WORKER_ID
+        read -p "Enter Registration Code: " REGISTRATION_CODE
+        echo "WORKER_ID=$WORKER_ID" > "$WORKER_FILE"
+        echo "REGISTRATION_CODE=$REGISTRATION_CODE" >> "$WORKER_FILE"
     fi
 
-    echo "Installing and starting Kuzco Worker Node..."
-    sudo kuzco worker start --background --worker "$WORKER_ID" --code "$REG_CODE"
-
-    echo "✅ Kuzco Worker started successfully!"
+    sudo kuzco worker start --background --worker "$WORKER_ID" --code "$REGISTRATION_CODE"
+    echo "✅ Kuzco Worker started!"
 }
 
-# Function to reset saved credentials
-reset_credentials() {
-    rm -f "$CONFIG_FILE"
-    echo "🔄 Credentials have been reset. You will be asked for Worker ID and Registration Code again."
-}
-
-# Function to check worker status
+# Function to check Kuzco worker status
 check_worker_status() {
-    echo "Checking Kuzco Worker status..."
     kuzco worker status
 }
 
-# Function to stop the worker
+# Function to stop Kuzco worker
 stop_worker() {
-    echo "Stopping Kuzco Worker..."
     sudo kuzco worker stop
+    echo "✅ Kuzco Worker stopped!"
 }
 
-# Function to restart the worker
+# Function to restart Kuzco worker
 restart_worker() {
-    echo "Restarting Kuzco Worker..."
     sudo kuzco worker restart
+    echo "✅ Kuzco Worker restarted!"
 }
 
-# Function to view worker logs
+# Function to view Kuzco worker logs
 view_worker_logs() {
-    echo "Fetching Kuzco Worker logs..."
     sudo kuzco worker logs
 }
 
-# Run NVIDIA and CUDA checks before proceeding
-check_nvidia_gpu
-check_cuda
-
-# Menu function
+# Main menu
 while true; do
-    echo "=========================="
-    echo " Kuzco Worker Manager Menu"
-    echo "=========================="
-    echo "1. Install Kuzco Worker Node"
-    echo "2. Check Worker Status"
-    echo "3. Stop Worker"
-    echo "4. Restart Worker"
-    echo "5. View Worker Logs"
-    echo "6. Reset Credentials"
-    echo "7. Install Kuzco CLI"
-    echo "8. Exit"
-    echo "=========================="
-    read -p "Select an option (1-8): " choice
+    echo "======================================"
+    echo "🚀 Kuzco Manager - GPU & CUDA Ready 🚀"
+    echo "======================================"
+    echo "1) Install Kuzco Worker Node"
+    echo "2) Check Worker Status"
+    echo "3) Stop Worker"
+    echo "4) Restart Worker"
+    echo "5) View Worker Logs"
+    echo "6) Exit"
+    echo "======================================"
+    read -p "Choose an option: " choice
 
     case $choice in
-        1) install_kuzco_worker ;;
+        1)
+            check_nvidia_gpu
+            check_cuda
+            install_nvidia_container_toolkit
+            install_cuda
+            set_cuda_env
+            install_kuzco
+            start_kuzco_worker
+            ;;
         2) check_worker_status ;;
         3) stop_worker ;;
         4) restart_worker ;;
         5) view_worker_logs ;;
-        6) reset_credentials ;;
-        7) install_kuzco_cli ;;
-        8) echo "Exiting..."; exit 0 ;;
-        *) echo "Invalid choice! Please enter a number between 1-8." ;;
+        6) echo "🚀 Exiting Kuzco Manager!"; exit 0 ;;
+        *) echo "❌ Invalid option, try again!" ;;
     esac
-    echo ""
 done
