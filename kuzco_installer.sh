@@ -19,6 +19,35 @@ handle_error() {
     exit 1
 }
 
+# Function to add NVIDIA repository and GPG key
+setup_nvidia_repo() {
+    log_message "🔧 Setting up NVIDIA repository and GPG key..."
+
+    # Import GPG key
+    curl -fsSL https://nvidia.github.io/libnvidia-container/gpgkey | sudo gpg --dearmor -o /usr/share/keyrings/nvidia-container-toolkit-keyring.gpg || handle_error "Failed to import NVIDIA GPG key"
+
+    # Add repository
+    curl -s -L https://nvidia.github.io/libnvidia-container/stable/deb/nvidia-container-toolkit.list | \
+        sed 's#deb https://#deb [signed-by=/usr/share/keyrings/nvidia-container-toolkit-keyring.gpg] https://#g' | \
+        sudo tee /etc/apt/sources.list.d/nvidia-container-toolkit.list || handle_error "Failed to add NVIDIA repository"
+
+    log_message "✅ NVIDIA repository and GPG key set up successfully."
+}
+
+# Ensure all required dependencies are installed
+log_message "🔧 Installing required packages..."
+sudo apt update || handle_error "Failed to update package list"
+sudo apt install -y gnupg lsb-release wget curl || handle_error "Failed to install required packages"
+
+# Function to check NVIDIA GPU
+check_nvidia_gpu() {
+    log_message "🔍 Checking for NVIDIA GPU..."
+    if ! command -v nvidia-smi &> /dev/null; then
+        handle_error "NVIDIA GPU not detected! Install NVIDIA drivers first."
+    fi
+    log_message "✅ NVIDIA GPU detected!"
+}
+
 # Function to check if CUDA is installed and matches the required version
 is_cuda_installed() {
     if command -v nvcc &> /dev/null; then
@@ -37,27 +66,10 @@ is_cuda_installed() {
     fi
 }
 
-# Ensure all required dependencies are installed
-log_message "🔧 Installing required packages..."
-sudo apt update || handle_error "Failed to update package list"
-sudo apt install -y gnupg lsb-release wget curl || handle_error "Failed to install required packages"
-
-# Function to check NVIDIA GPU
-check_nvidia_gpu() {
-    log_message "🔍 Checking for NVIDIA GPU..."
-    if ! command -v nvidia-smi &> /dev/null; then
-        handle_error "NVIDIA GPU not detected! Install NVIDIA drivers first."
-    fi
-    log_message "✅ NVIDIA GPU detected!"
-}
-
 # Function to install NVIDIA Container Toolkit
 install_nvidia_container_toolkit() {
     log_message "🔧 Installing NVIDIA Container Toolkit..."
-    curl -fsSL https://nvidia.github.io/libnvidia-container/gpgkey | sudo tee /usr/share/keyrings/nvidia-container-toolkit-keyring.gpg
-    curl -s -L https://nvidia.github.io/libnvidia-container/stable/deb/nvidia-container-toolkit.list | \
-        sed 's#deb https://#deb [signed-by=/usr/share/keyrings/nvidia-container-toolkit-keyring.gpg] https://#g' | \
-        sudo tee /etc/apt/sources.list.d/nvidia-container-toolkit.list
+    setup_nvidia_repo
     sudo apt-get update || handle_error "Failed to update package list"
     sudo apt-get install -y nvidia-container-toolkit || handle_error "Failed to install NVIDIA Container Toolkit"
     log_message "✅ NVIDIA Container Toolkit installed!"
@@ -189,8 +201,8 @@ while true; do
     case $choice in
         1)
             check_nvidia_gpu
-            install_nvidia_container_toolkit
             setup_cuda_env
+            install_nvidia_container_toolkit
             install_cuda
             setup_cuda_env
             install_kuzco
