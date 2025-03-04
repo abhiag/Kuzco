@@ -19,25 +19,42 @@ handle_error() {
     exit 1
 }
 
-# Function to add NVIDIA repository and GPG key
-setup_nvidia_repo() {
-    log_message "🔧 Setting up NVIDIA repository and GPG key..."
-
-    # Import GPG key
-    curl -fsSL https://nvidia.github.io/libnvidia-container/gpgkey | sudo gpg --dearmor -o /usr/share/keyrings/nvidia-container-toolkit-keyring.gpg || handle_error "Failed to import NVIDIA GPG key"
-
-    # Add repository
-    curl -s -L https://nvidia.github.io/libnvidia-container/stable/deb/nvidia-container-toolkit.list | \
-        sed 's#deb https://#deb [signed-by=/usr/share/keyrings/nvidia-container-toolkit-keyring.gpg] https://#g' | \
-        sudo tee /etc/apt/sources.list.d/nvidia-container-toolkit.list || handle_error "Failed to add NVIDIA repository"
-
-    log_message "✅ NVIDIA repository and GPG key set up successfully."
+# Function to check if a package is installed
+is_installed() {
+    dpkg -l "$1" &> /dev/null
+    return $?
 }
 
-# Ensure all required dependencies are installed
-log_message "🔧 Installing required packages..."
-sudo apt update || handle_error "Failed to update package list"
-sudo apt install -y gnupg lsb-release wget curl || handle_error "Failed to install required packages"
+# Show upgradable packages
+log_message "🔍 Checking for upgradable packages..."
+UPGRADABLE=$(apt list --upgradable 2>/dev/null | grep -v "Listing..." || true)
+
+if [ -z "$UPGRADABLE" ]; then
+    log_message "✅ All packages are up to date. Skipping upgrade."
+else
+    log_message "🔧 Upgradable packages found:"
+    echo "$UPGRADABLE"
+    log_message "🔧 Upgrading packages..."
+    sudo apt upgrade -y || handle_error "Failed to upgrade packages"
+fi
+
+# Install required packages only if not already installed
+REQUIRED_PACKAGES=(nvtop sudo curl htop systemd fonts-noto-color-emoji)
+ALL_INSTALLED=true
+
+for pkg in "${REQUIRED_PACKAGES[@]}"; do
+    if ! is_installed "$pkg"; then
+        log_message "🔧 Installing $pkg..."
+        sudo apt install -y "$pkg" || handle_error "Failed to install $pkg"
+        ALL_INSTALLED=false
+    else
+        log_message "✅ $pkg is already installed, skipping."
+    fi
+done
+
+if $ALL_INSTALLED; then
+    log_message "✅ All required packages are already installed. Skipping installation."
+fi
 
 # Function to check NVIDIA GPU
 check_nvidia_gpu() {
@@ -66,13 +83,13 @@ is_cuda_installed() {
     fi
 }
 
-# Function to install NVIDIA Container Toolkit
-install_nvidia_container_toolkit() {
-    log_message "🔧 Installing NVIDIA Container Toolkit..."
-    setup_nvidia_repo
-    sudo apt-get update || handle_error "Failed to update package list"
-    sudo apt-get install -y nvidia-container-toolkit || handle_error "Failed to install NVIDIA Container Toolkit"
-    log_message "✅ NVIDIA Container Toolkit installed!"
+# Function to set up CUDA environment variables
+setup_cuda_env() {
+    log_message "🔧 Setting up CUDA environment variables..."
+    echo 'export PATH=/usr/local/cuda-12.8/bin${PATH:+:${PATH}}' | sudo tee /etc/profile.d/cuda.sh
+    echo 'export LD_LIBRARY_PATH=/usr/local/cuda-12.8/lib64${LD_LIBRARY_PATH:+:${LD_LIBRARY_PATH}}' | sudo tee -a /etc/profile.d/cuda.sh
+    source /etc/profile.d/cuda.sh
+    log_message "✅ CUDA environment variables set up successfully."
 }
 
 # Function to install CUDA Toolkit 12.8 in WSL or Ubuntu 24.04
@@ -81,6 +98,9 @@ install_cuda() {
         log_message "⏩ CUDA is already installed. Skipping installation."
         return
     fi
+
+    log_message "🔧 Setting up CUDA environment before installation..."
+    setup_cuda_env
 
     if $IS_WSL; then
         log_message "🖥️ Installing CUDA for WSL 2..."
@@ -128,14 +148,6 @@ install_cuda() {
 
     log_message "✅ CUDA Toolkit 12.8 installed successfully."
     setup_cuda_env
-}
-
-# Set up CUDA environment variables
-setup_cuda_env() {
-    log_message "🔧 Setting up CUDA environment variables..."
-    echo 'export PATH=/usr/local/cuda-12.8/bin${PATH:+:${PATH}}' | sudo tee /etc/profile.d/cuda.sh
-    echo 'export LD_LIBRARY_PATH=/usr/local/cuda-12.8/lib64${LD_LIBRARY_PATH:+:${LD_LIBRARY_PATH}}' | sudo tee -a /etc/profile.d/cuda.sh
-    source /etc/profile.d/cuda.sh
 }
 
 # Function to install Kuzco CLI
@@ -201,10 +213,10 @@ while true; do
     case $choice in
         1)
             check_nvidia_gpu
-            setup_cuda_env
-            install_nvidia_container_toolkit
-            install_cuda
-            setup_cuda_env
+            if ! is_cuda_installed; then
+                setup_cuda_env
+                install_cuda
+            fi
             install_kuzco
             start_kuzco_worker
             ;;
