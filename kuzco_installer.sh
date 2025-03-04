@@ -1,5 +1,8 @@
 #!/bin/bash
 
+CONFIG_DIR="$HOME/.kuzco"
+CONFIG_FILE="$CONFIG_DIR/config"
+
 # Function to install Kuzco CLI
 install_kuzco_cli() {
     echo "Installing Kuzco CLI..."
@@ -26,14 +29,35 @@ check_kuzco_cli() {
     fi
 }
 
+# Function to save worker credentials
+save_credentials() {
+    mkdir -p "$CONFIG_DIR"
+    echo "WORKER_ID=$WORKER_ID" > "$CONFIG_FILE"
+    echo "REG_CODE=$REG_CODE" >> "$CONFIG_FILE"
+}
+
+# Function to load worker credentials
+load_credentials() {
+    if [[ -f "$CONFIG_FILE" ]]; then
+        source "$CONFIG_FILE"
+        echo "🔹 Loaded saved Worker ID: $WORKER_ID"
+    else
+        return 1  # No credentials found
+    fi
+}
+
 # Function to install Kuzco Worker Node
 install_kuzco_worker() {
-    read -p "Enter your Worker ID: " WORKER_ID
-    read -p "Enter your Registration Code: " REG_CODE
+    if ! load_credentials; then
+        read -p "Enter your Worker ID: " WORKER_ID
+        read -p "Enter your Registration Code: " REG_CODE
 
-    if [[ -z "$WORKER_ID" || -z "$REG_CODE" ]]; then
-        echo "Error: Worker ID and Registration Code cannot be empty."
-        return
+        if [[ -z "$WORKER_ID" || -z "$REG_CODE" ]]; then
+            echo "❌ Error: Worker ID and Registration Code cannot be empty."
+            return
+        fi
+
+        save_credentials
     fi
 
     echo "Installing and starting Kuzco Worker Node..."
@@ -44,6 +68,12 @@ install_kuzco_worker() {
     else
         echo "❌ Error: Failed to start Kuzco Worker."
     fi
+}
+
+# Function to reset saved credentials
+reset_credentials() {
+    rm -f "$CONFIG_FILE"
+    echo "🔄 Credentials have been reset. Next time, you will be asked for Worker ID and Registration Code."
 }
 
 # Function to check worker status
@@ -83,9 +113,10 @@ while true; do
     echo "3. Stop Worker"
     echo "4. Restart Worker"
     echo "5. View Worker Logs"
-    echo "6. Exit"
+    echo "6. Reset Credentials"
+    echo "7. Exit"
     echo "=========================="
-    read -p "Select an option (1-6): " choice
+    read -p "Select an option (1-7): " choice
 
     case $choice in
         1) install_kuzco_worker ;;
@@ -93,8 +124,9 @@ while true; do
         3) stop_worker ;;
         4) restart_worker ;;
         5) view_worker_logs ;;
-        6) echo "Exiting..."; exit 0 ;;
-        *) echo "Invalid choice! Please enter a number between 1-6." ;;
+        6) reset_credentials ;;
+        7) echo "Exiting..."; exit 0 ;;
+        *) echo "Invalid choice! Please enter a number between 1-7." ;;
     esac
     echo ""
 done
