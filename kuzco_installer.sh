@@ -157,7 +157,15 @@ install_kuzco() {
     log_message "✅ Kuzco CLI installed!"
 }
 
-# Function to start Kuzco worker
+# Function to check if systemd is available
+is_systemd() {
+    if command -v systemctl &> /dev/null && systemctl --version &> /dev/null; then
+        return 0
+    else
+        return 1
+    fi
+}
+
 start_kuzco_worker() {
     if [[ -f "$WORKER_FILE" ]]; then
         source "$WORKER_FILE"
@@ -170,30 +178,68 @@ start_kuzco_worker() {
         echo "REGISTRATION_CODE=$REGISTRATION_CODE" >> "$WORKER_FILE"
     fi
 
-    sudo kuzco worker start --background --worker "$WORKER_ID" --code "$REGISTRATION_CODE" || handle_error "Failed to start Kuzco Worker"
-    log_message "✅ Kuzco Worker started!"
+    if is_systemd; then
+        log_message "🔧 Starting Kuzco Worker using systemd..."
+        sudo systemctl enable kuzco.service || handle_error "Failed to enable Kuzco service"
+        sudo systemctl start kuzco.service || handle_error "Failed to start Kuzco Worker"
+    else
+        log_message "🔧 Starting Kuzco Worker directly (non-systemd system)..."
+        nohup kuzco worker start --worker "$WORKER_ID" --code "$REGISTRATION_CODE" > "$KUZCO_DIR/kuzco.log" 2>&1 &
+        if [ $? -eq 0 ]; then
+            log_message "✅ Kuzco Worker started!"
+        else
+            handle_error "Failed to start Kuzco Worker"
+        fi
+    fi
 }
 
 # Function to check Kuzco worker status
 check_worker_status() {
-    kuzco worker status || handle_error "Failed to check worker status"
+    if is_systemd; then
+        sudo systemctl status kuzco.service || handle_error "Failed to check worker status"
+    else
+        log_message "🔧 Checking Kuzco Worker status directly (non-systemd system)..."
+        if pgrep -f "kuzco worker" > /dev/null; then
+            log_message "✅ Kuzco Worker is running."
+        else
+            log_message "❌ Kuzco Worker is not running."
+        fi
+    fi
 }
 
 # Function to stop Kuzco worker
 stop_worker() {
-    sudo kuzco worker stop || handle_error "Failed to stop Kuzco Worker"
+    if is_systemd; then
+        log_message "🔧 Stopping Kuzco Worker using systemd..."
+        sudo systemctl stop kuzco.service || handle_error "Failed to stop Kuzco Worker"
+    else
+        log_message "🔧 Stopping Kuzco Worker directly (non-systemd system)..."
+        pkill -f "kuzco worker" || handle_error "Failed to stop Kuzco Worker"
+    fi
     log_message "✅ Kuzco Worker stopped!"
 }
 
 # Function to restart Kuzco worker
 restart_worker() {
-    sudo kuzco worker restart || handle_error "Failed to restart Kuzco Worker"
+    if is_systemd; then
+        log_message "🔧 Restarting Kuzco Worker using systemd..."
+        sudo systemctl restart kuzco.service || handle_error "Failed to restart Kuzco Worker"
+    else
+        log_message "🔧 Restarting Kuzco Worker directly (non-systemd system)..."
+        stop_worker
+        start_kuzco_worker
+    fi
     log_message "✅ Kuzco Worker restarted!"
 }
 
 # Function to view Kuzco worker logs
 view_worker_logs() {
-    sudo kuzco worker logs || handle_error "Failed to view worker logs"
+    if is_systemd; then
+        sudo journalctl -u kuzco.service || handle_error "Failed to view worker logs"
+    else
+        log_message "🔧 Viewing Kuzco Worker logs directly (non-systemd system)..."
+        sudo tail -n 100 /var/log/kuzco.log || handle_error "Failed to view worker logs"
+    fi
 }
 
 # Main menu
