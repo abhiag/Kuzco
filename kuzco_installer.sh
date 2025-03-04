@@ -50,6 +50,7 @@ sudo apt-get install -y nvidia-container-toolkit
 echo "✅ NVIDIA Container Toolkit installed!"
 
 # Install CUDA
+install_cuda() {
 echo "🔧 Installing CUDA..."
 UBUNTU_VERSION=$(lsb_release -rs)
 
@@ -91,6 +92,7 @@ echo 'export CUDA_HOME=/usr/local/cuda' >> ~/.bashrc
 source ~/.bashrc
 
 echo "✅ CUDA installation complete!"
+}
 
 # Function to install Kuzco CLI
 install_kuzco() {
