@@ -140,13 +140,19 @@ start_worker() {
         echo "REGISTRATION_CODE=$REGISTRATION_CODE" >> "$WORKER_FILE"
     fi
 
-    if systemctl list-unit-files | grep -q kuzco.service; then
-        log_message "🔧 Starting Kuzco Worker..."
-        sudo systemctl enable kuzco.service
-        sudo systemctl start kuzco.service
+    # Check if systemd is available and running
+    if command -v systemctl &>/dev/null && [[ -d "/run/systemd/system" ]]; then
+        log_message "🔧 Starting Kuzco Worker using systemd..."
+        sudo systemctl enable kuzco.service || log_message "⚠️ Failed to enable Kuzco service."
+        sudo systemctl start kuzco.service || log_message "⚠️ Failed to start Kuzco service."
     else
         log_message "🔧 Starting Kuzco Worker without systemd..."
         nohup kuzco worker start --worker "$WORKER_ID" --code "$REGISTRATION_CODE" > "$KUZCO_DIR/kuzco_manager.log" 2>&1 &
+        if [ $? -eq 0 ]; then
+            log_message "✅ Kuzco Worker started successfully (without systemd)!"
+        else
+            log_message "❌ Failed to start Kuzco Worker!"
+        fi
     fi
 }
 
