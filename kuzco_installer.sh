@@ -258,7 +258,7 @@ while true; do
         2) check_worker_status ;;
         3) stop_worker ;;
         4) restart_worker ;;
-        5) exit 0 ;;
+        5) log_message "🚀 Exiting Kuzco Manager!"; exit 0 ;;
         6) view_worker_logs ;;
         *) log_message "❌ Invalid option!" ;;
     esac
