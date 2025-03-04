@@ -68,6 +68,21 @@ view_worker_logs() {
     sudo kuzco worker logs || handle_error "Failed to view worker logs"
 }
 
+# Function to force kill Kuzco Worker
+force_kill_worker() {
+    log_message "🛑 Forcing Kuzco Worker to stop..."
+    
+    # Find the PID of the Kuzco worker process
+    PID=$(pgrep -f "kuzco worker start")
+    
+    if [[ -n "$PID" ]]; then
+        sudo kill -9 "$PID"
+        log_message "✅ Kuzco Worker process ($PID) forcefully stopped!"
+    else
+        log_message "❌ No running Kuzco Worker process found!"
+    fi
+}
+
 # Main menu
 while true; do
     echo "======================================"
@@ -79,7 +94,8 @@ while true; do
     echo "4) Stop Worker"
     echo "5) Restart Worker"
     echo "6) View Worker Logs"
-    echo "7) Exit"
+    echo "7) Force Kill Worker Process"
+    echo "8) Exit"
     echo "======================================"
     read -p "Choose an option: " choice
 
@@ -90,7 +106,8 @@ while true; do
         4) stop_worker ;;
         5) restart_worker ;;
         6) view_worker_logs ;;
-        7) log_message "🚀 Exiting Kuzco Manager!"; exit 0 ;;
+        7) force_kill_worker ;;
+        8) log_message "🚀 Exiting Kuzco Manager!"; exit 0 ;;
         *) log_message "❌ Invalid option, try again!" ;;
     esac
     read -rp "Press Enter to return to the main menu..."
