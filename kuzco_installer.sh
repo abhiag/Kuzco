@@ -110,6 +110,16 @@ force_kill_worker() {
     fi
 }
 
+check_cuda_installed() {
+    log_message "🔍 Checking if CUDA is installed..."
+    
+    # Download and execute the CUDA check script
+    curl -fsSL https://raw.githubusercontent.com/abhiag/CUDA/main/Cuda.sh | bash
+    
+    # Wait for user input before returning to the main menu
+    read -rp "Press Enter to return to the main menu..."
+}
+
 # Main menu
 while true; do
     echo "======================================"
@@ -123,7 +133,14 @@ while true; do
     echo "6) View Worker Logs"
     echo "7) Force Kill Worker Process"
     echo "8) Exit"
+    
+    echo ""  # Adds a blank line for separation
     echo "======================================"
+    echo "🔍 Check if CUDA is Installed"
+    echo "======================================"
+    echo "9) Check CUDA Installation"
+    echo "======================================"
+
     read -p "Choose an option: " choice
 
     case $choice in
@@ -135,7 +152,9 @@ while true; do
         6) view_worker_logs ;;
         7) force_kill_worker ;;
         8) log_message "🚀 Exiting Kuzco Manager!"; exit 0 ;;
+        9) check_cuda_installed ;;  # New option to check CUDA
         *) log_message "❌ Invalid option, try again!" ;;
     esac
     read -rp "Press Enter to return to the main menu..."
 done
+
