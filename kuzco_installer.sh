@@ -32,6 +32,9 @@ check_cuda() {
 
 # Function to install NVIDIA Container Toolkit
 install_nvidia_container_toolkit() {
+    echo "🔧 Installing GPG..."
+    sudo apt update && sudo apt install -y gnupg
+
     echo "Installing NVIDIA Container Toolkit..."
     
     # Configure the repository
