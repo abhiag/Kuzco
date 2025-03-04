@@ -171,6 +171,7 @@ while true; do
     case $choice in
         1)
             check_nvidia_gpu
+            setup_cuda_env
             check_cuda
             install_nvidia_container_toolkit
             install_cuda
