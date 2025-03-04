@@ -146,7 +146,7 @@ start_worker() {
         sudo systemctl start kuzco.service
     else
         log_message "🔧 Starting Kuzco Worker without systemd..."
-        nohup kuzco worker start --worker "$WORKER_ID" --code "$REGISTRATION_CODE" > "$KUZCO_DIR/kuzco.log" 2>&1 &
+        nohup kuzco worker start --worker "$WORKER_ID" --code "$REGISTRATION_CODE" > "$KUZCO_DIR/kuzco_manager.log" 2>&1 &
     fi
 }
 
@@ -172,7 +172,7 @@ restart_worker() {
 
     # Start Kuzco Worker again
     log_message "🔧 Starting Kuzco Worker..."
-    nohup kuzco worker start --worker "$WORKER_ID" --code "$REGISTRATION_CODE" > "$KUZCO_DIR/kuzco.log" 2>&1 &
+    nohup kuzco worker start --worker "$WORKER_ID" --code "$REGISTRATION_CODE" > "$KUZCO_DIR/kuzco_manager.log" 2>&1 &
     
     if [ $? -eq 0 ]; then
         log_message "✅ Kuzco Worker restarted successfully!"
