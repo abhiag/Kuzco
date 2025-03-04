@@ -66,7 +66,11 @@ install_kuzco() {
 start_worker() {
     if [[ -f "$WORKER_FILE" ]]; then
         source "$WORKER_FILE"
-    else
+        WORKER_ID=${WORKER_ID:-""}  # Ensure variables are explicitly set
+        REGISTRATION_CODE=${REGISTRATION_CODE:-""}
+    fi
+
+    if [[ -z "$WORKER_ID" || -z "$REGISTRATION_CODE" ]]; then
         read -p "Enter Worker ID: " WORKER_ID
         read -p "Enter Registration Code: " REGISTRATION_CODE
         echo "WORKER_ID=$WORKER_ID" > "$WORKER_FILE"
