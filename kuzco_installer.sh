@@ -144,7 +144,19 @@ while true; do
     read -p "Choose an option: " choice
 
     case $choice in
-        1) detect_nvidia_gpu && install_tools && install_kuzco ;;
+        1) 
+    detect_nvidia_gpu
+    install_tools
+    
+    if [[ $? -eq 0 ]]; then
+        log_message "✅ NVIDIA GPU detected. Proceeding with CUDA setup."
+    else
+        log_message "⚠️ No NVIDIA GPU detected. Skipping CUDA installation."
+    fi
+
+    install_kuzco
+;;
+
         2) start_worker ;;
         3) check_worker_status ;;
         4) stop_worker ;;
