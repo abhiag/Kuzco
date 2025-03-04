@@ -93,4 +93,5 @@ while true; do
         7) log_message "🚀 Exiting Kuzco Manager!"; exit 0 ;;
         *) log_message "❌ Invalid option, try again!" ;;
     esac
+    read -rp "Press Enter to return to the main menu..."
 done
