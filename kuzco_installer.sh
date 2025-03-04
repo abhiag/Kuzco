@@ -235,4 +235,5 @@ while true; do
         5) exit 0 ;;
         *) log_message "❌ Invalid option!" ;;
     esac
+    read -rp "Press Enter to return to the main menu..."
 done
