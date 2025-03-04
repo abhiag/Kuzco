@@ -36,49 +36,53 @@ install_nvidia_container_toolkit() {
     echo "✅ NVIDIA Container Toolkit installed!"
 }
 
-# Function to install CUDA
-install_cuda() {
-    echo "🔧 Installing CUDA..."
+echo "✅ NVIDIA GPU detected!"
 
-    UBUNTU_VERSION=$(lsb_release -rs)
+# Check if NVIDIA Container Toolkit is installed
+echo "🔧 Installing NVIDIA Container Toolkit..."
+curl -fsSL https://nvidia.github.io/libnvidia-container/gpgkey | sudo gpg --dearmor -o /usr/share/keyrings/nvidia-container-toolkit-keyring.gpg
+curl -s -L https://nvidia.github.io/libnvidia-container/stable/deb/nvidia-container-toolkit.list | \
+    sed 's#deb https://#deb [signed-by=/usr/share/keyrings/nvidia-container-toolkit-keyring.gpg] https://#g' | \
+    sudo tee /etc/apt/sources.list.d/nvidia-container-toolkit.list
+sudo apt-get update
+sudo apt-get install -y nvidia-container-toolkit
 
-    if [[ "$UBUNTU_VERSION" == "24.04" ]]; then
-        echo "🚀 Installing CUDA for Ubuntu 24.04..."
-        wget https://developer.download.nvidia.com/compute/cuda/repos/ubuntu2404/x86_64/cuda-ubuntu2404.pin
-        sudo mv cuda-ubuntu2404.pin /etc/apt/preferences.d/cuda-repository-pin-600
+echo "✅ NVIDIA Container Toolkit installed!"
 
-        wget https://developer.download.nvidia.com/compute/cuda/12.2.2/local_installers/cuda-repo-ubuntu2404-12-2-local_12.2.2-1_amd64.deb
-        sudo dpkg -i cuda-repo-ubuntu2404-12-2-local_12.2.2-1_amd64.deb
-        sudo cp /var/cuda-repo-ubuntu2404-12-2-local/cuda-*-keyring.gpg /usr/share/keyrings/
+# Install CUDA
+echo "🔧 Installing CUDA..."
+UBUNTU_VERSION=$(lsb_release -rs)
 
-    elif [[ -d "/mnt/wsl" ]]; then
-        echo "🚀 Installing CUDA for WSL..."
-        wget https://developer.download.nvidia.com/compute/cuda/repos/wsl-ubuntu/x86_64/cuda-wsl-ubuntu.pin
-        sudo mv cuda-wsl-ubuntu.pin /etc/apt/preferences.d/cuda-repository-pin-600
+if [[ -d "/mnt/wsl" ]]; then
+    echo "🚀 Installing CUDA for WSL..."
+    wget https://developer.download.nvidia.com/compute/cuda/repos/wsl-ubuntu/x86_64/cuda-wsl-ubuntu.pin
+    sudo mv cuda-wsl-ubuntu.pin /etc/apt/preferences.d/cuda-repository-pin-600
+    wget https://developer.download.nvidia.com/compute/cuda/repos/wsl-ubuntu/x86_64/cuda-repo-wsl-ubuntu-12-2-local_12.2.2-1_amd64.deb
+    sudo dpkg -i cuda-repo-wsl-ubuntu-12-2-local_12.2.2-1_amd64.deb
+    sudo cp /var/cuda-repo-wsl-ubuntu-12-2-local/cuda-*-keyring.gpg /usr/share/keyrings/
+elif [[ "$UBUNTU_VERSION" == "24.04" ]]; then
+    echo "🚀 Installing CUDA for Ubuntu 24.04..."
+    wget https://developer.download.nvidia.com/compute/cuda/repos/ubuntu2404/x86_64/cuda-ubuntu2404.pin
+    sudo mv cuda-ubuntu2404.pin /etc/apt/preferences.d/cuda-repository-pin-600
+    wget https://developer.download.nvidia.com/compute/cuda/12.2.2/local_installers/cuda-repo-ubuntu2404-12-2-local_12.2.2-1_amd64.deb
+    sudo dpkg -i cuda-repo-ubuntu2404-12-2-local_12.2.2-1_amd64.deb
+    sudo cp /var/cuda-repo-ubuntu2404-12-2-local/cuda-*-keyring.gpg /usr/share/keyrings/
+else
+    echo "❌ Unsupported OS version! Exiting..."
+    exit 1
+fi
 
-        wget https://developer.download.nvidia.com/compute/cuda/repos/wsl-ubuntu/x86_64/cuda-repo-wsl-ubuntu-12-2-local_12.2.2-1_amd64.deb
-        sudo dpkg -i cuda-repo-wsl-ubuntu-12-2-local_12.2.2-1_amd64.deb
-        sudo cp /var/cuda-repo-wsl-ubuntu-12-2-local/cuda-*-keyring.gpg /usr/share/keyrings/
+sudo apt update
+sudo apt install -y cuda
 
-    else
-        echo "❌ Unsupported OS version! Exiting..."
-        exit 1
-    fi
+# Set CUDA environment variables
+echo "🔧 Setting CUDA environment variables..."
+echo 'export PATH=/usr/local/cuda/bin:$PATH' >> ~/.bashrc
+echo 'export LD_LIBRARY_PATH=/usr/local/cuda/lib64:$LD_LIBRARY_PATH' >> ~/.bashrc
+echo 'export CUDA_HOME=/usr/local/cuda' >> ~/.bashrc
+source ~/.bashrc
 
-    sudo apt update
-    sudo apt install -y cuda
-    echo "✅ CUDA installed successfully!"
-}
-
-# Function to set environment variables
-set_cuda_env() {
-    echo "🔧 Setting CUDA environment variables..."
-    echo 'export PATH=/usr/local/cuda/bin:$PATH' >> ~/.bashrc
-    echo 'export LD_LIBRARY_PATH=/usr/local/cuda/lib64:$LD_LIBRARY_PATH' >> ~/.bashrc
-    echo 'export CUDA_HOME=/usr/local/cuda' >> ~/.bashrc
-    source ~/.bashrc
-    echo "✅ CUDA environment variables set!"
-}
+echo "✅ CUDA installation complete!"
 
 # Function to install Kuzco CLI
 install_kuzco() {
