@@ -217,6 +217,23 @@ stop_worker() {
     fi
 }
 
+view_worker_logs() {
+    log_message "🔧 Fetching Kuzco Worker logs (live)..."
+
+    if command -v systemctl &>/dev/null && systemctl list-unit-files | grep -q kuzco.service; then
+        log_message "📜 Viewing live logs from systemd..."
+        sudo journalctl -u kuzco.service -f
+    else
+        if [ -f "$KUZCO_DIR/kuzco_manager.log" ]; then
+            log_message "📜 Viewing live logs from log file..."
+            tail -f "$KUZCO_DIR/kuzco_manager.log"
+        else
+            log_message "⚠️ No logs found! The worker might not have started yet."
+        fi
+    fi
+}
+
+
 # Main menu
 while true; do
     echo -e "\n🚀 Kuzco Manager 🚀"
