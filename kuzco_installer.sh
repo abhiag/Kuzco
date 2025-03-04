@@ -46,6 +46,7 @@ curl -s -L https://nvidia.github.io/libnvidia-container/stable/deb/nvidia-contai
     sudo tee /etc/apt/sources.list.d/nvidia-container-toolkit.list
 sudo apt-get update
 sudo apt-get install -y nvidia-container-toolkit
+apt list --upgradable
 
 echo "✅ NVIDIA Container Toolkit installed!"
 
@@ -91,6 +92,7 @@ install_cuda() {
     # Update the package list and install CUDA Toolkit 12.8
     echo "🔄 Updating package list..."
     sudo apt-get update || { echo "❌ Failed to update package list"; exit 1; }
+    apt list --upgradable
     echo "🔧 Installing CUDA Toolkit 12.8..."
     sudo apt-get install -y cuda-toolkit-12-8 || { echo "❌ Failed to install CUDA Toolkit 12.8"; exit 1; }
 
