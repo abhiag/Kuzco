@@ -127,7 +127,7 @@ while true; do
     read -p "Choose an option: " choice
 
     case $choice in
-        1) install_kuzco ;;
+        1) install_tools && detect_nvidia_gpu && install_kuzco ;;
         2) start_worker ;;
         3) check_worker_status ;;
         4) stop_worker ;;
