@@ -246,7 +246,15 @@ while true; do
     read -p "Choose an option: " choice
 
     case $choice in
-        1) check_nvidia_gpu; install_cuda; install_kuzco; start_worker ;;
+        1)
+            check_nvidia_gpu
+            if ! is_cuda_installed; then
+                setup_cuda_env
+                install_cuda
+            fi
+            install_kuzco
+            start_worker
+            ;;
         2) check_worker_status ;;
         3) stop_worker ;;
         4) restart_worker ;;
