@@ -242,6 +242,7 @@ while true; do
     echo "3) Stop Worker"
     echo "4) Restart Worker"
     echo "5) Exit"
+    echo "6) View Worker Logs"
     read -p "Choose an option: " choice
 
     case $choice in
@@ -250,6 +251,7 @@ while true; do
         3) stop_worker ;;
         4) restart_worker ;;
         5) exit 0 ;;
+        6) view_worker_logs ;;
         *) log_message "❌ Invalid option!" ;;
     esac
     read -rp "Press Enter to return to the main menu..."
