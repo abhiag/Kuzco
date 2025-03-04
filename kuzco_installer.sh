@@ -49,49 +49,61 @@ sudo apt-get install -y nvidia-container-toolkit
 
 echo "✅ NVIDIA Container Toolkit installed!"
 
-# Install CUDA
+# Function to install CUDA Toolkit 12.8 in WSL or Ubuntu 24.04
 install_cuda() {
-echo "🔧 Installing CUDA..."
-UBUNTU_VERSION=$(lsb_release -rs)
-
-if [[ -d "/mnt/wsl" ]]; then
-    echo "🚀 Installing CUDA for WSL..."
-    CUDA_REPO_URL="https://developer.download.nvidia.com/compute/cuda/repos/wsl-ubuntu/x86_64"
-    CUDA_DEB=$(curl -s $CUDA_REPO_URL/ | grep -o 'cuda-repo-wsl-ubuntu-[0-9-]*_amd64.deb' | sort -V | tail -n 1)
-    if [[ -z "$CUDA_DEB" ]]; then
-        echo "❌ Failed to find a valid CUDA package for WSL! Exiting..."
-        exit 1
+    if $IS_WSL; then
+        echo "🖥️ Installing CUDA for WSL 2..."
+        # Define file names and URLs for WSL
+        PIN_FILE="cuda-wsl-ubuntu.pin"
+        PIN_URL="https://developer.download.nvidia.com/compute/cuda/repos/wsl-ubuntu/x86_64/cuda-wsl-ubuntu.pin"
+        DEB_FILE="cuda-repo-wsl-ubuntu-12-8-local_12.8.0-1_amd64.deb"
+        DEB_URL="https://developer.download.nvidia.com/compute/cuda/12.8.0/local_installers/cuda-repo-wsl-ubuntu-12-8-local_12.8.0-1_amd64.deb"
+    else
+        echo "🖥️ Installing CUDA for Ubuntu 24.04..."
+        # Define file names and URLs for Ubuntu 24.04
+        PIN_FILE="cuda-ubuntu2404.pin"
+        PIN_URL="https://developer.download.nvidia.com/compute/cuda/repos/ubuntu2404/x86_64/cuda-ubuntu2404.pin"
+        DEB_FILE="cuda-repo-ubuntu2404-12-8-local_12.8.0-570.86.10-1_amd64.deb"
+        DEB_URL="https://developer.download.nvidia.com/compute/cuda/12.8.0/local_installers/cuda-repo-ubuntu2404-12-8-local_12.8.0-570.86.10-1_amd64.deb"
     fi
-    wget $CUDA_REPO_URL/$CUDA_DEB
-    sudo dpkg -i $CUDA_DEB
-    sudo cp /var/cuda-repo-wsl-ubuntu-*/cuda-*-keyring.gpg /usr/share/keyrings/
-elif [[ "$UBUNTU_VERSION" == "24.04" ]]; then
-    echo "🚀 Installing CUDA for Ubuntu 24.04..."
-    CUDA_REPO_URL="https://developer.download.nvidia.com/compute/cuda/repos/ubuntu2404/x86_64"
-    CUDA_DEB=$(curl -s $CUDA_REPO_URL/ | grep -o 'cuda-repo-ubuntu2404-[0-9-]*_amd64.deb' | sort -V | tail -n 1)
-    if [[ -z "$CUDA_DEB" ]]; then
-        echo "❌ Failed to find a valid CUDA package for Ubuntu 24.04! Exiting..."
-        exit 1
+
+    # Download the .pin file
+    echo "📥 Downloading $PIN_FILE from $PIN_URL..."
+    wget "$PIN_URL" || { echo "❌ Failed to download $PIN_FILE from $PIN_URL"; exit 1; }
+
+    # Move the .pin file to the correct location
+    sudo mv "$PIN_FILE" /etc/apt/preferences.d/cuda-repository-pin-600 || { echo "❌ Failed to move $PIN_FILE to /etc/apt/preferences.d/"; exit 1; }
+
+    # Remove the .deb file if it exists, then download a fresh copy
+    if [ -f "$DEB_FILE" ]; then
+        echo "🗑️ Deleting existing $DEB_FILE..."
+        rm -f "$DEB_FILE"
     fi
-    wget $CUDA_REPO_URL/$CUDA_DEB
-    sudo dpkg -i $CUDA_DEB
-    sudo cp /var/cuda-repo-ubuntu2404-*/cuda-*-keyring.gpg /usr/share/keyrings/
-else
-    echo "❌ Unsupported OS version! Exiting..."
-    exit 1
-fi
+    echo "📥 Downloading $DEB_FILE from $DEB_URL..."
+    wget "$DEB_URL" || { echo "❌ Failed to download $DEB_FILE from $DEB_URL"; exit 1; }
 
-sudo apt update
-sudo apt install -y cuda
+    # Install the .deb file
+    sudo dpkg -i "$DEB_FILE" || { echo "❌ Failed to install $DEB_FILE"; exit 1; }
 
-# Set CUDA environment variables
-echo "🔧 Setting CUDA environment variables..."
-echo 'export PATH=/usr/local/cuda/bin:$PATH' >> ~/.bashrc
-echo 'export LD_LIBRARY_PATH=/usr/local/cuda/lib64:$LD_LIBRARY_PATH' >> ~/.bashrc
-echo 'export CUDA_HOME=/usr/local/cuda' >> ~/.bashrc
-source ~/.bashrc
+    # Copy the keyring
+    sudo cp /var/cuda-repo-*/cuda-*-keyring.gpg /usr/share/keyrings/ || { echo "❌ Failed to copy CUDA keyring to /usr/share/keyrings/"; exit 1; }
 
-echo "✅ CUDA installation complete!"
+    # Update the package list and install CUDA Toolkit 12.8
+    echo "🔄 Updating package list..."
+    sudo apt-get update || { echo "❌ Failed to update package list"; exit 1; }
+    echo "🔧 Installing CUDA Toolkit 12.8..."
+    sudo apt-get install -y cuda-toolkit-12-8 || { echo "❌ Failed to install CUDA Toolkit 12.8"; exit 1; }
+
+    echo "✅ CUDA Toolkit 12.8 installed successfully."
+    setup_cuda_env
+}
+
+# Set up CUDA environment variables
+setup_cuda_env() {
+    echo "🔧 Setting up CUDA environment variables..."
+    echo 'export PATH=/usr/local/cuda-12.8/bin${PATH:+:${PATH}}' | sudo tee /etc/profile.d/cuda.sh
+    echo 'export LD_LIBRARY_PATH=/usr/local/cuda-12.8/lib64${LD_LIBRARY_PATH:+:${LD_LIBRARY_PATH}}' | sudo tee -a /etc/profile.d/cuda.sh
+    source /etc/profile.d/cuda.sh
 }
 
 # Function to install Kuzco CLI
