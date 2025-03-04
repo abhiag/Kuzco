@@ -1,5 +1,31 @@
 #!/bin/bash
 
+# Function to install Kuzco CLI
+install_kuzco_cli() {
+    echo "Installing Kuzco CLI..."
+    curl -fsSL https://inference.supply/install.sh | sh
+    if [[ $? -eq 0 ]]; then
+        echo "✅ Kuzco CLI installed successfully!"
+    else
+        echo "❌ Error: Failed to install Kuzco CLI."
+        exit 1
+    fi
+}
+
+# Function to check if Kuzco CLI is installed
+check_kuzco_cli() {
+    if ! command -v kuzco &> /dev/null; then
+        echo "⚠️ Kuzco CLI is not installed!"
+        read -p "Would you like to install it now? (y/n): " choice
+        if [[ "$choice" == "y" || "$choice" == "Y" ]]; then
+            install_kuzco_cli
+        else
+            echo "❌ Kuzco CLI is required. Exiting..."
+            exit 1
+        fi
+    fi
+}
+
 # Function to install Kuzco Worker Node
 install_kuzco_worker() {
     read -p "Enter your Worker ID: " WORKER_ID
@@ -43,6 +69,9 @@ view_worker_logs() {
     echo "Fetching Kuzco Worker logs..."
     sudo kuzco worker logs
 }
+
+# Check if Kuzco CLI is installed before showing the menu
+check_kuzco_cli
 
 # Menu function
 while true; do
