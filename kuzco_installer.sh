@@ -30,6 +30,21 @@ check_cuda() {
     fi
 }
 
+install_gpg() {
+    echo "🔧 Checking and installing GPG if missing..."
+    if ! command -v gpg &> /dev/null; then
+        sudo apt update && sudo apt install -y gnupg2 gnupg-agent
+    fi
+    if command -v gpg &> /dev/null; then
+        echo "✅ GPG installed successfully."
+    else
+        echo "❌ GPG installation failed. Exiting."
+        exit 1
+    fi
+}
+
+install_gpg
+
 # Function to install NVIDIA Container Toolkit
 install_nvidia_container_toolkit() {
     echo "🔧 Installing GPG..."
