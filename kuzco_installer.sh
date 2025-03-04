@@ -3,30 +3,60 @@
 CONFIG_DIR="$HOME/.kuzco"
 CONFIG_FILE="$CONFIG_DIR/config"
 
+# Function to check for an NVIDIA GPU
+check_nvidia_gpu() {
+    if ! command -v nvidia-smi &> /dev/null; then
+        echo "❌ NVIDIA GPU not detected. Make sure your drivers are installed."
+        exit 1
+    fi
+
+    GPU_INFO=$(nvidia-smi --query-gpu=name --format=csv,noheader)
+    if [[ -z "$GPU_INFO" ]]; then
+        echo "❌ No NVIDIA GPU found! Ensure your GPU is properly connected."
+        exit 1
+    else
+        echo "✅ NVIDIA GPU detected: $GPU_INFO"
+    fi
+}
+
+# Function to check if CUDA is installed
+check_cuda() {
+    if ! command -v nvcc &> /dev/null; then
+        echo "⚠️ CUDA is not installed. Installing NVIDIA Container Toolkit..."
+        install_nvidia_container_toolkit
+    else
+        CUDA_VERSION=$(nvcc --version | grep "release" | awk '{print $6}')
+        echo "✅ CUDA detected: $CUDA_VERSION"
+    fi
+}
+
+# Function to install NVIDIA Container Toolkit
+install_nvidia_container_toolkit() {
+    echo "Installing NVIDIA Container Toolkit..."
+    
+    # Configure the repository
+    curl -fsSL https://nvidia.github.io/libnvidia-container/gpgkey | sudo gpg --dearmor -o /usr/share/keyrings/nvidia-container-toolkit-keyring.gpg \
+    && curl -s -L https://nvidia.github.io/libnvidia-container/stable/deb/nvidia-container-toolkit.list | \
+        sed 's#deb https://#deb [signed-by=/usr/share/keyrings/nvidia-container-toolkit-keyring.gpg] https://#g' | \
+        sudo tee /etc/apt/sources.list.d/nvidia-container-toolkit.list
+
+    # Optionally enable experimental packages
+    sed -i -e '/experimental/ s/^#//g' /etc/apt/sources.list.d/nvidia-container-toolkit.list
+
+    # Update package list
+    sudo apt-get update
+
+    # Install NVIDIA Container Toolkit
+    sudo apt-get install -y nvidia-container-toolkit
+
+    echo "✅ NVIDIA Container Toolkit installed successfully."
+}
+
 # Function to install Kuzco CLI
 install_kuzco_cli() {
     echo "Installing Kuzco CLI..."
     curl -fsSL https://inference.supply/install.sh | sh
-    if [[ $? -eq 0 ]]; then
-        echo "✅ Kuzco CLI installed successfully!"
-    else
-        echo "❌ Error: Failed to install Kuzco CLI."
-        exit 1
-    fi
-}
-
-# Function to check if Kuzco CLI is installed
-check_kuzco_cli() {
-    if ! command -v kuzco &> /dev/null; then
-        echo "⚠️ Kuzco CLI is not installed!"
-        read -p "Would you like to install it now? (y/n): " choice
-        if [[ "$choice" == "y" || "$choice" == "Y" ]]; then
-            install_kuzco_cli
-        else
-            echo "❌ Kuzco CLI is required. Exiting..."
-            exit 1
-        fi
-    fi
+    echo "✅ Kuzco CLI installed successfully!"
 }
 
 # Function to save worker credentials
@@ -63,17 +93,13 @@ install_kuzco_worker() {
     echo "Installing and starting Kuzco Worker Node..."
     sudo kuzco worker start --background --worker "$WORKER_ID" --code "$REG_CODE"
 
-    if [[ $? -eq 0 ]]; then
-        echo "✅ Kuzco Worker started successfully!"
-    else
-        echo "❌ Error: Failed to start Kuzco Worker."
-    fi
+    echo "✅ Kuzco Worker started successfully!"
 }
 
 # Function to reset saved credentials
 reset_credentials() {
     rm -f "$CONFIG_FILE"
-    echo "🔄 Credentials have been reset. Next time, you will be asked for Worker ID and Registration Code."
+    echo "🔄 Credentials have been reset. You will be asked for Worker ID and Registration Code again."
 }
 
 # Function to check worker status
@@ -100,8 +126,9 @@ view_worker_logs() {
     sudo kuzco worker logs
 }
 
-# Check if Kuzco CLI is installed before showing the menu
-check_kuzco_cli
+# Run NVIDIA and CUDA checks before proceeding
+check_nvidia_gpu
+check_cuda
 
 # Menu function
 while true; do
@@ -114,9 +141,10 @@ while true; do
     echo "4. Restart Worker"
     echo "5. View Worker Logs"
     echo "6. Reset Credentials"
-    echo "7. Exit"
+    echo "7. Install Kuzco CLI"
+    echo "8. Exit"
     echo "=========================="
-    read -p "Select an option (1-7): " choice
+    read -p "Select an option (1-8): " choice
 
     case $choice in
         1) install_kuzco_worker ;;
@@ -125,8 +153,9 @@ while true; do
         4) restart_worker ;;
         5) view_worker_logs ;;
         6) reset_credentials ;;
-        7) echo "Exiting..."; exit 0 ;;
-        *) echo "Invalid choice! Please enter a number between 1-7." ;;
+        7) install_kuzco_cli ;;
+        8) echo "Exiting..."; exit 0 ;;
+        *) echo "Invalid choice! Please enter a number between 1-8." ;;
     esac
     echo ""
 done
