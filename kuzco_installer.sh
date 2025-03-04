@@ -19,6 +19,15 @@ handle_error() {
     exit 1
 }
 
+# Function to set up CUDA environment variables
+setup_cuda_env() {
+    log_message "🔧 Setting up CUDA environment variables..."
+    echo 'export PATH=/usr/local/cuda-12.8/bin${PATH:+:${PATH}}' | sudo tee /etc/profile.d/cuda.sh
+    echo 'export LD_LIBRARY_PATH=/usr/local/cuda-12.8/lib64${LD_LIBRARY_PATH:+:${LD_LIBRARY_PATH}}' | sudo tee -a /etc/profile.d/cuda.sh
+    source /etc/profile.d/cuda.sh
+    log_message "✅ CUDA environment variables set up successfully."
+}
+
 # Function to check and install required tools (lspci or lshw)
 install_tools() {
     log_message "🔍 Checking for system tools..."
@@ -145,13 +154,14 @@ while true; do
 
     case $choice in
         1) 
-    detect_nvidia_gpu
+    setup_cuda_env
     install_tools
+    detect_nvidia_gpu
     
     if [[ $? -eq 0 ]]; then
-        log_message "✅ NVIDIA GPU detected. Proceeding with CUDA setup."
+        log_message "✅ NVIDIA GPU detected. Proceeding with GPU setup."
     else
-        log_message "⚠️ No NVIDIA GPU detected. Skipping CUDA installation."
+        log_message "⚠️ No NVIDIA GPU detected. Skipping GPU installation."
     fi
 
     install_kuzco
