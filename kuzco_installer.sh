@@ -231,6 +231,9 @@ show_menu() {
             sleep 2
             show_menu
             ;;
+        7)
+            uninstall_kuzco
+            ;;
     esac
 
     read -rp "Press Enter to return to the main menu..."
