@@ -13,7 +13,7 @@ setup_timezone() {
     sudo apt-get install -y tzdata
 
     echo "Configuring timezone to Asia/Kolkata..."
-    echo "Asia/Kolkata" | sudo tee /etc/timezone
+    echo "Asia/Dubai" | sudo tee /etc/timezone
     sudo ln -fs /usr/share/zoneinfo/Asia/Kolkata /etc/localtime
     sudo dpkg-reconfigure -f noninteractive tzdata
 
