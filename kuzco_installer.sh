@@ -112,7 +112,6 @@ install_kuzco() {
 
 # Function to start the Kuzco worker in a screen session
 start_worker() {
-    screen -ls | awk '/[0-9]+\.kuzco/ {print $1}' | xargs -r -I{} screen -X -S {} quit
     echo "Starting Kuzco worker in screen session '$SCREEN_NAME'..."
 
     # Start a new detached screen session and run the worker inside it
