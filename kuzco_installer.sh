@@ -226,13 +226,13 @@ show_menu() {
             echo "Exiting..."
             exit 0
             ;;
+        7)
+            uninstall_kuzco
+            ;;
         *)
             echo "Invalid option. Please try again."
             sleep 2
             show_menu
-            ;;
-        7)
-            uninstall_kuzco
             ;;
     esac
 
