@@ -60,14 +60,28 @@ install_gpu_tools() {
     fi
 }
 
-# Function to check if NVIDIA GPU is available
+# Function to check if NVIDIA GPU is available in WSL or Linux
 check_nvidia_gpu() {
-    if command -v lspci &> /dev/null && lspci | grep -i nvidia &> /dev/null; then
-        echo "NVIDIA GPU detected."
-        return 0
+    if [[ $(grep -i microsoft /proc/version) ]]; then
+        echo "Detected WSL environment. Checking GPU with nvcc..."
+        if command -v nvcc &> /dev/null; then
+            echo "CUDA detected in WSL!"
+            nvcc --version
+            return 0
+        else
+            echo "No CUDA installation found in WSL! Ensure CUDA is installed and configured properly."
+            return 1
+        fi
     else
-        echo "No NVIDIA GPU detected! Make sure drivers and CUDA are installed."
-        return 1
+        # Standard Linux check
+        if command -v nvcc &> /dev/null; then
+            echo "CUDA detected!"
+            nvcc --version
+            return 0
+        else
+            echo "No CUDA installation found! Make sure CUDA is installed."
+            return 1
+        fi
     fi
 }
 
