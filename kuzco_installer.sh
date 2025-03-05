@@ -167,6 +167,7 @@ show_menu() {
             start_worker
             ;;
         2)
+            setup_timezone
             check_install_cuda
             ;;
         3)
