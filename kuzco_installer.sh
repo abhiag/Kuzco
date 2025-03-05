@@ -52,77 +52,21 @@ setup_timezone() {
 # Function to install pciutils and lshw if not installed
 install_gpu_tools() {
     if ! command -v lspci &> /dev/null || ! command -v lshw &> /dev/null; then
-        log_message "Installing required GPU detection tools (pciutils & lshw)..."
-        sudo apt update > /dev/null 2>&1
-        sudo apt install -y pciutils lshw > /dev/null 2>&1
-        if [ $? -eq 0 ]; then
-            log_message "GPU detection tools installed successfully."
-        else
-            log_message "Error: Failed to install GPU detection tools!" >&2
-            return 1
-        fi
+        echo "Installing required GPU detection tools (pciutils & lshw)..."
+        sudo apt update
+        sudo apt install -y pciutils lshw
     else
-        log_message "Required GPU detection tools are already installed."
+        echo "Required GPU detection tools are already installed."
     fi
-    return 0
 }
 
 # Function to check if NVIDIA GPU is available
 check_nvidia_gpu() {
-    if ! command -v lspci &> /dev/null; then
-        log_message "Error: 'lspci' command not found. Install pciutils first." >&2
-        return 1
-    fi
-
-    log_message "Checking for NVIDIA GPU..."
-    if lspci | grep -i nvidia &> /dev/null; then
-        log_message "NVIDIA GPU detected."
-        if command -v nvidia-smi &> /dev/null; then
-            log_message "NVIDIA drivers are installed."
-            nvidia-smi  # Display GPU information
-            return 0
-        else
-            log_message "NVIDIA GPU detected, but drivers are not installed. Install NVIDIA drivers and CUDA."
-            return 1
-        fi
-    else
-        log_message "No NVIDIA GPU detected."
-        return 1
-    fi
-}
-
-# Function to check if AMD GPU is available
-check_amd_gpu() {
-    if ! command -v lspci &> /dev/null; then
-        log_message "Error: 'lspci' command not found. Install pciutils first." >&2
-        return 1
-    fi
-
-    log_message "Checking for AMD GPU..."
-    if lspci | grep -i amd | grep -i vga &> /dev/null; then
-        log_message "AMD GPU detected."
-        if command -v rocm-smi &> /dev/null; then
-            log_message "AMD drivers are installed."
-            rocm-smi  # Display GPU information
-            return 0
-        else
-            log_message "AMD GPU detected, but drivers are not installed. Install AMD drivers."
-            return 1
-        fi
-    else
-        log_message "No AMD GPU detected."
-        return 1
-    fi
-}
-
-# Function to check for any GPU (NVIDIA or AMD)
-check_gpu() {
-    if check_nvidia_gpu; then
-        return 0
-    elif check_amd_gpu; then
+    if command -v lspci &> /dev/null && lspci | grep -i nvidia &> /dev/null; then
+        echo "NVIDIA GPU detected."
         return 0
     else
-        log_message "No supported GPU detected."
+        echo "No NVIDIA GPU detected! Make sure drivers and CUDA are installed."
         return 1
     fi
 }
