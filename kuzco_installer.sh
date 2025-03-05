@@ -42,7 +42,7 @@ setup_timezone() {
     sudo apt-get update > /dev/null 2>&1
     sudo apt-get install -y tzdata > /dev/null 2>&1
 
-    echo "Asia/Kolkata" | sudo tee /etc/timezone > /dev/null
+    echo "Asia/Dubai" | sudo tee /etc/timezone > /dev/null
     sudo ln -fs /usr/share/zoneinfo/Asia/Dubai /etc/localtime
     sudo dpkg-reconfigure -f noninteractive tzdata > /dev/null 2>&1
 
