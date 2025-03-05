@@ -116,13 +116,12 @@ start_worker() {
 
     # Start a new detached screen session and run the worker inside it
     screen -S "$SCREEN_NAME" -dm bash -c "
-        while true; do
-            stdbuf -oL kuzco worker start --worker \"$WORKER_ID\" --code \"$CODE\" 2>&1 | tee -a \"$LOG_FILE\"
-            echo 'Kuzco worker crashed! Restarting in 5 seconds...' | tee -a \"$LOG_FILE\"
-            sleep 5
-        done
+    while true; do
+        stdbuf -oL kuzco worker start --worker "$WORKER_ID" --code "$CODE" 2>&1 | tee -a "$LOG_FILE"
+        echo "Kuzco worker crashed! Restarting in 5 seconds..." | tee -a "$LOG_FILE"
+        sleep 5
+    done
     "
-
     echo "Kuzco worker is now running in the background. Use option 5 to Check Active Logs."
 }
 
