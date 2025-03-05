@@ -84,15 +84,18 @@ setup_cuda_env() {
     fi
 }
 
-# Function to check and install CUDA
 check_install_cuda() {
     setup_cuda_env  # Set up CUDA environment before checking installation
+    
     if command -v nvcc &> /dev/null; then
         echo "CUDA is already installed!"
     else
         echo "CUDA is not installed. Installing CUDA..."
         curl -fsSL https://raw.githubusercontent.com/abhiag/CUDA/main/Cuda.sh | bash
+        echo "CUDA installation completed."
     fi
+
+    # Ensure the script waits before returning to the menu
     read -rp "Press Enter to return to the main menu..."
 }
 
