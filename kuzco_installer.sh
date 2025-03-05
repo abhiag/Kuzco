@@ -100,8 +100,6 @@ check_install_cuda() {
         curl -fsSL https://raw.githubusercontent.com/abhiag/CUDA/main/Cuda.sh | bash
         echo "CUDA installation completed."
     fi
-
-    read -rp "Press Enter to return to the main menu..."
 }
 
 # Function to install Kuzco
