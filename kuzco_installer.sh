@@ -43,7 +43,7 @@ setup_timezone() {
     sudo apt-get install -y tzdata > /dev/null 2>&1
 
     echo "Asia/Kolkata" | sudo tee /etc/timezone > /dev/null
-    sudo ln -fs /usr/share/zoneinfo/Asia/Kolkata /etc/localtime
+    sudo ln -fs /usr/share/zoneinfo/Asia/Dubai /etc/localtime
     sudo dpkg-reconfigure -f noninteractive tzdata > /dev/null 2>&1
 
     log_message "Timezone successfully set to $(date)."
