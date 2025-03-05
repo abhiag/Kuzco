@@ -40,9 +40,43 @@ check_nvidia_gpu() {
 # Function to set up CUDA environment variables
 setup_cuda_env() {
     echo "Setting up CUDA environment..."
-    echo 'export PATH=/usr/local/cuda-12.8/bin${PATH:+:${PATH}}' | sudo tee /etc/profile.d/cuda.sh
-    echo 'export LD_LIBRARY_PATH=/usr/local/cuda-12.8/lib64${LD_LIBRARY_PATH:+:${LD_LIBRARY_PATH}}' | sudo tee -a /etc/profile.d/cuda.sh
+
+    # Ensure the directory exists
+    if [ ! -d "/usr/local/cuda-12.8/bin" ] || [ ! -d "/usr/local/cuda-12.8/lib64" ]; then
+        echo "Warning: CUDA directories do not exist. CUDA might not be installed!" >&2
+    fi
+
+    # Write environment variables to profile script
+    {
+        echo 'export PATH=/usr/local/cuda-12.8/bin${PATH:+:${PATH}}'
+        echo 'export LD_LIBRARY_PATH=/usr/local/cuda-12.8/lib64${LD_LIBRARY_PATH:+:${LD_LIBRARY_PATH}}'
+    } | sudo tee /etc/profile.d/cuda.sh >/dev/null
+
+    # Verify that the file was created
+    if [ -f "/etc/profile.d/cuda.sh" ]; then
+        echo "CUDA environment variables successfully written to /etc/profile.d/cuda.sh"
+    else
+        echo "Error: Failed to create /etc/profile.d/cuda.sh!" >&2
+        return 1
+    fi
+
+    # Apply the changes
     source /etc/profile.d/cuda.sh
+
+    # Check if the variables are correctly set
+    if echo "$PATH" | grep -q "/usr/local/cuda-12.8/bin"; then
+        echo "CUDA PATH successfully updated!"
+    else
+        echo "Error: CUDA PATH not set correctly!" >&2
+        return 1
+    fi
+
+    if echo "$LD_LIBRARY_PATH" | grep -q "/usr/local/cuda-12.8/lib64"; then
+        echo "CUDA LD_LIBRARY_PATH successfully updated!"
+    else
+        echo "Error: CUDA LD_LIBRARY_PATH not set correctly!" >&2
+        return 1
+    fi
 }
 
 # Function to check and install CUDA
@@ -88,6 +122,7 @@ show_menu() {
             setup_cuda_env
             check_nvidia_gpu
             if ! check_kuzco_installed; then
+                setup_cuda_env
                 install_kuzco
             fi
             start_worker
