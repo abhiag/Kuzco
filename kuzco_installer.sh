@@ -75,7 +75,7 @@ install_gpu_tools() {
     if ! command -v lspci &> /dev/null || ! command -v lshw &> /dev/null; then
         echo "Installing required GPU detection tools (pciutils & lshw)..."
         sudo apt update
-        sudo apt install -y pciutils lshw
+        sudo apt install -y pciutils lshw coreutils
     else
         echo "Required GPU detection tools are already installed."
     fi
