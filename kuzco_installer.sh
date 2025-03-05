@@ -202,14 +202,7 @@ show_menu() {
             check_install_cuda
             ;;
         2)
-            install_gpu_tools
-            setup_cuda_env
-            check_nvidia_gpu
-            if ! check_kuzco_installed; then
-                setup_cuda_env
-                setup_worker_node
-            fi
-            start_worker
+            setup_worker_node
             ;;
         3)
             start_worker
