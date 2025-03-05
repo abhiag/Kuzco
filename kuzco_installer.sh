@@ -112,6 +112,7 @@ install_kuzco() {
 
 # Function to start the Kuzco worker in a screen session
 start_worker() {
+    screen -ls | awk '/[0-9]+\.kuzco/ {print $1}' | xargs -r -I{} screen -X -S {} quit
     echo "Starting Kuzco worker in screen session '$SCREEN_NAME'..."
 
     # Start a new detached screen session and run the worker inside it
@@ -123,7 +124,7 @@ start_worker() {
         done
     "
 
-    echo "Kuzco worker is now running in the background. Use option 4 to stop it."
+    echo "Kuzco worker is now running in the background. Use option 5 to Check Active Logs."
 }
 
 # Function to stop the Kuzco worker by terminating the screen session
@@ -175,10 +176,12 @@ setup_worker_node() {
 # Function to display the menu
 show_menu() {
     clear
-    echo "=== Kuzco Setup Menu - Only GPU Users Can Run ==="
+    echo "====================================================="
+    echo "=== Kuzco Setup Menu - 📌Only GPU Users Can Run ==="
+    echo "====================================================="
     echo "1) Check & Install CUDA"
     echo "2) Install & Run Kuzco Worker"
-    echo "3) Start Kuzco Worker Node (Save Credentials)"
+    echo "3) ReStart Kuzco Worker Node"
     echo "4) Stop Kuzco Worker"
     echo "5) Check Kuzco Active LOGs"
     echo "6) Exit"
@@ -201,7 +204,7 @@ show_menu() {
             start_worker
             ;;
         3)
-            setup_worker_node
+            start_worker
             ;;
         4)
             stop_worker
