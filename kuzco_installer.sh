@@ -174,9 +174,6 @@ setup_worker_node() {
 }
 
 uninstall_kuzco() {
-    echo "Stopping Kuzco Worker..."
-    screen -ls | awk '/[0-9]+\.kuzco/ {print $1}' | xargs -r -I{} screen -X -S {} quit
-
     echo "Removing Kuzco..."
     sudo rm -f /usr/local/bin/kuzco
     rm -rf ~/.kuzco ~/.config/kuzco
