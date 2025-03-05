@@ -73,13 +73,12 @@ check_nvidia_gpu() {
             return 1
         fi
     else
-        # Standard Linux check
-        if command -v nvcc &> /dev/null; then
-            echo "CUDA detected!"
-            nvcc --version
+# Standard Linux check
+        if command -v lspci &> /dev/null && lspci | grep -i nvidia &> /dev/null; then
+            echo "NVIDIA GPU detected."
             return 0
         else
-            echo "No CUDA installation found! Make sure CUDA is installed."
+            echo "No NVIDIA GPU detected! Make sure drivers and CUDA are installed."
             return 1
         fi
     fi
