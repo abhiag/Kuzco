@@ -266,7 +266,7 @@ show_menu() {
             install_gpu_tools && setup_worker_node
             ;;
         3)
-            start_worker
+            setup_worker_node
             ;;
         4)
             stop_worker
