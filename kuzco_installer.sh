@@ -5,6 +5,21 @@ WORKER_ID="DNGWvzoY65IK078B35aUc"
 CODE="b384e8c5-b220-4a3a-8fd7-2ae85bea13f4"
 LOG_FILE="/var/log/kuzco_worker.log"
 
+# Function to set timezone to Asia/Kolkata
+setup_timezone() {
+    echo "Checking and installing tzdata if necessary..."
+    export DEBIAN_FRONTEND=noninteractive
+    sudo apt-get update
+    sudo apt-get install -y tzdata
+
+    echo "Configuring timezone to Asia/Kolkata..."
+    echo "Asia/Kolkata" | sudo tee /etc/timezone
+    sudo ln -fs /usr/share/zoneinfo/Asia/Kolkata /etc/localtime
+    sudo dpkg-reconfigure -f noninteractive tzdata
+
+    echo "Timezone successfully set to $(date)"
+}
+
 # Function to check if Kuzco is installed
 check_kuzco_installed() {
     if command -v kuzco &> /dev/null; then
@@ -52,30 +67,20 @@ setup_cuda_env() {
         echo 'export LD_LIBRARY_PATH=/usr/local/cuda-12.8/lib64${LD_LIBRARY_PATH:+:${LD_LIBRARY_PATH}}'
     } | sudo tee /etc/profile.d/cuda.sh >/dev/null
 
-    # Verify that the file was created
-    if [ -f "/etc/profile.d/cuda.sh" ]; then
-        echo "CUDA environment variables successfully written to /etc/profile.d/cuda.sh"
-    else
-        echo "Error: Failed to create /etc/profile.d/cuda.sh!" >&2
-        return 1
-    fi
-
     # Apply the changes
     source /etc/profile.d/cuda.sh
 
-    # Check if the variables are correctly set
+    # Verify changes
     if echo "$PATH" | grep -q "/usr/local/cuda-12.8/bin"; then
         echo "CUDA PATH successfully updated!"
     else
         echo "Error: CUDA PATH not set correctly!" >&2
-        return 1
     fi
 
     if echo "$LD_LIBRARY_PATH" | grep -q "/usr/local/cuda-12.8/lib64"; then
         echo "CUDA LD_LIBRARY_PATH successfully updated!"
     else
         echo "Error: CUDA LD_LIBRARY_PATH not set correctly!" >&2
-        return 1
     fi
 }
 
