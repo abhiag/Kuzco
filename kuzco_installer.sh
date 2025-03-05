@@ -217,6 +217,12 @@ uninstall_kuzco() {
 # Function to display the menu
 show_menu() {
     clear
+    echo "==============================================================="
+    echo -e "\e[1;36m🚀🚀 Kuzco NODE INSTALLER Tool-Kit BY GA CRYPTO 🚀🚀\e[0m"
+
+    echo -e "\e[1;85m📢 Stay updated:\e[0m"
+    echo -e "\e[1;85m🔹 Telegram: https://t.me/GaCryptOfficial\e[0m"
+    echo -e "\e[1;85m🔹 X (Twitter): https://x.com/GACryptoO\e[0m"
     echo "====================================================="
     echo "=== Kuzco Setup Menu - 📌Only GPU Users Can Run ==="
     echo "====================================================="
