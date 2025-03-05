@@ -173,7 +173,7 @@ start_worker() {
 
     screen -S "$SCREEN_NAME" -dm bash -c "
     while true; do
-        stdbuf -oL kuzco worker start --worker \"$WORKER_ID\" --code \"$CODE\" 2>&1 | tee -a \"$LOG_FILE\"
+        sudo kuzco worker start --worker \"$WORKER_ID\" --code \"$CODE\" 2>&1 | tee -a \"$LOG_FILE\"
         log_message \"Kuzco worker crashed! Restarting in 5 seconds...\"
         sleep 5
     done
