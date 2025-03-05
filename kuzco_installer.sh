@@ -93,6 +93,7 @@ check_install_cuda() {
         echo "CUDA is not installed. Installing CUDA..."
         curl -fsSL https://raw.githubusercontent.com/abhiag/CUDA/main/Cuda.sh | bash
     fi
+    read -rp "Press Enter to return to the main menu..."
 }
 
 # Function to install Kuzco
@@ -145,6 +146,7 @@ show_menu() {
             show_menu
             ;;
     esac
+    read -rp "Press Enter to return to the main menu..."
 }
 
 # Run the menu
