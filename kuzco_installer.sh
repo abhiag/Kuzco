@@ -173,6 +173,18 @@ setup_worker_node() {
     start_worker
 }
 
+uninstall_kuzco() {
+    echo "Stopping Kuzco Worker..."
+    screen -ls | awk '/[0-9]+\.kuzco/ {print $1}' | xargs -r -I{} screen -X -S {} quit
+
+    echo "Removing Kuzco..."
+    sudo rm -f /usr/local/bin/kuzco
+    rm -rf ~/.kuzco ~/.config/kuzco
+    sudo rm -f /var/log/kuzco_worker.log
+
+    echo "Kuzco has been uninstalled successfully!"
+}
+
 # Function to display the menu
 show_menu() {
     clear
@@ -185,6 +197,7 @@ show_menu() {
     echo "4) Stop Kuzco Worker"
     echo "5) Check Kuzco Active LOGs"
     echo "6) Exit"
+    echo "7) Uninstall Kuzco Worker"
     echo "========================="
     read -rp "Enter your choice: " choice
 
