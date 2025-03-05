@@ -2,6 +2,7 @@
 
 CONFIG_FILE="$HOME/.kuzco_config"
 LOG_FILE="/var/log/kuzco_worker.log"
+SCREEN_NAME="kuzco"  # Name of the screen session
 
 # Function to load Kuzco credentials from config file
 load_kuzco_config() {
@@ -109,16 +110,43 @@ install_kuzco() {
     curl -fsSL https://inference.supply/install.sh | sh
 }
 
-# Function to start the Kuzco worker
+# Function to start the Kuzco worker in a screen session
 start_worker() {
-    echo "Starting Kuzco worker..."
+    echo "Starting Kuzco worker in screen session '$SCREEN_NAME'..."
 
-    while true; do
-        stdbuf -oL kuzco worker start --worker "$WORKER_ID" --code "$CODE" 2>&1 | tee -a "$LOG_FILE"
+    # Start a new detached screen session and run the worker inside it
+    screen -S "$SCREEN_NAME" -dm bash -c "
+        while true; do
+            stdbuf -oL kuzco worker start --worker \"$WORKER_ID\" --code \"$CODE\" 2>&1 | tee -a \"$LOG_FILE\"
+            echo 'Kuzco worker crashed! Restarting in 5 seconds...' | tee -a \"$LOG_FILE\"
+            sleep 5
+        done
+    "
 
-        echo "Kuzco worker crashed! Restarting in 5 seconds..." | tee -a "$LOG_FILE"
-        sleep 5
-    done
+    echo "Kuzco worker is now running in the background. Use option 4 to stop it."
+}
+
+# Function to stop the Kuzco worker by terminating the screen session
+stop_worker() {
+    echo "Stopping Kuzco worker..."
+
+    # Find and terminate any active Kuzco screen sessions
+    screen -ls | awk '/[0-9]+\.kuzco/ {print $1}' | xargs -r -I{} screen -X -S {} quit
+
+    # Remove any remaining screen sockets for 'kuzco'
+    find /var/run/screen -type s -name "*kuzco*" -exec sudo rm -rf {} + 2>/dev/null
+
+    echo "Kuzco worker stopped."
+}
+
+# Function to check Kuzco active logs
+check_kuzco_logs() {
+    if screen -list | grep -q "$SCREEN_NAME"; then
+        echo "Attaching to the Kuzco worker screen session..."
+        screen -r "$SCREEN_NAME"
+    else
+        echo "No active Kuzco worker session found!"
+    fi
 }
 
 # Function to set up and start the Kuzco worker node
@@ -147,16 +175,22 @@ setup_worker_node() {
 # Function to display the menu
 show_menu() {
     clear
-    echo "=== Kuzco Setup Menu ==="
-    echo "1) Install & Run Kuzco Worker"
-    echo "2) Check & Install CUDA"
+    echo "=== Kuzco Setup Menu - Only GPU Users Can Run ==="
+    echo "1) Check & Install CUDA"
+    echo "2) Install & Run Kuzco Worker"
     echo "3) Start Kuzco Worker Node (Save Credentials)"
-    echo "4) Exit"
+    echo "4) Stop Kuzco Worker"
+    echo "5) Check Kuzco Active LOGs"
+    echo "6) Exit"
     echo "========================="
     read -rp "Enter your choice: " choice
 
     case $choice in
         1)
+            setup_timezone
+            check_install_cuda
+            ;;
+        2)
             install_gpu_tools
             setup_cuda_env
             check_nvidia_gpu
@@ -166,14 +200,16 @@ show_menu() {
             fi
             start_worker
             ;;
-        2)
-            setup_timezone
-            check_install_cuda
-            ;;
         3)
             setup_worker_node
             ;;
         4)
+            stop_worker
+            ;;
+        5)
+            check_kuzco_logs
+            ;;
+        6)
             echo "Exiting..."
             exit 0
             ;;
@@ -187,6 +223,9 @@ show_menu() {
     read -rp "Press Enter to return to the main menu..."
     show_menu
 }
+
+# Run the menu
+show_menu
 
 # Run the menu
 show_menu
