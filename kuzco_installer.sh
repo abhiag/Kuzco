@@ -1,9 +1,23 @@
 #!/bin/bash
 
-# Kuzco Worker Configuration
-WORKER_ID="DNGWvzoY65IK078B35aUc"
-CODE="b384e8c5-b220-4a3a-8fd7-2ae85bea13f4"
+CONFIG_FILE="$HOME/.kuzco_config"
 LOG_FILE="/var/log/kuzco_worker.log"
+
+# Function to load Kuzco credentials from config file
+load_kuzco_config() {
+    if [[ -f "$CONFIG_FILE" ]]; then
+        source "$CONFIG_FILE"
+    else
+        WORKER_ID=""
+        CODE=""
+    fi
+}
+
+# Function to save Kuzco credentials
+save_kuzco_config() {
+    echo "WORKER_ID=\"$WORKER_ID\"" > "$CONFIG_FILE"
+    echo "CODE=\"$CODE\"" >> "$CONFIG_FILE"
+}
 
 # Function to set timezone to Asia/Kolkata
 setup_timezone() {
@@ -18,16 +32,6 @@ setup_timezone() {
     sudo dpkg-reconfigure -f noninteractive tzdata
 
     echo "Timezone successfully set to $(date)"
-}
-
-# Function to check if Kuzco is installed
-check_kuzco_installed() {
-    if command -v kuzco &> /dev/null; then
-        echo "Kuzco is already installed."
-        return 0
-    else
-        return 1
-    fi
 }
 
 # Function to install pciutils and lshw if not installed
@@ -84,6 +88,7 @@ setup_cuda_env() {
     fi
 }
 
+# Function to check and install CUDA
 check_install_cuda() {
     setup_cuda_env  # Set up CUDA environment before checking installation
     
@@ -95,7 +100,6 @@ check_install_cuda() {
         echo "CUDA installation completed."
     fi
 
-    # Ensure the script waits before returning to the menu
     read -rp "Press Enter to return to the main menu..."
 }
 
@@ -108,11 +112,36 @@ install_kuzco() {
 # Function to start the Kuzco worker
 start_worker() {
     echo "Starting Kuzco worker..."
+
     while true; do
-        kuzco worker start --worker "$WORKER_ID" --code "$CODE" >> "$LOG_FILE" 2>&1
+        stdbuf -oL kuzco worker start --worker "$WORKER_ID" --code "$CODE" 2>&1 | tee -a "$LOG_FILE"
+
         echo "Kuzco worker crashed! Restarting in 5 seconds..." | tee -a "$LOG_FILE"
         sleep 5
     done
+}
+
+# Function to set up and start the Kuzco worker node
+setup_worker_node() {
+    load_kuzco_config  # Load saved credentials if available
+
+    # Ask for Worker ID and Code if not already saved
+    if [[ -z "$WORKER_ID" || -z "$CODE" ]]; then
+        read -rp "Enter Kuzco Worker ID: " WORKER_ID
+        read -rp "Enter Kuzco Registration Code: " CODE
+        save_kuzco_config  # Save for future use
+    fi
+
+    setup_timezone
+    install_gpu_tools
+    setup_cuda_env
+    check_nvidia_gpu
+
+    if ! check_kuzco_installed; then
+        install_kuzco
+    fi
+
+    start_worker
 }
 
 # Function to display the menu
@@ -121,7 +150,8 @@ show_menu() {
     echo "=== Kuzco Setup Menu ==="
     echo "1) Install & Run Kuzco Worker"
     echo "2) Check & Install CUDA"
-    echo "3) Exit"
+    echo "3) Start Kuzco Worker Node (Save Credentials)"
+    echo "4) Exit"
     echo "========================="
     read -rp "Enter your choice: " choice
 
@@ -140,6 +170,9 @@ show_menu() {
             check_install_cuda
             ;;
         3)
+            setup_worker_node
+            ;;
+        4)
             echo "Exiting..."
             exit 0
             ;;
@@ -149,7 +182,9 @@ show_menu() {
             show_menu
             ;;
     esac
+
     read -rp "Press Enter to return to the main menu..."
+    show_menu
 }
 
 # Run the menu
