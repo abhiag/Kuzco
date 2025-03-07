@@ -195,7 +195,7 @@ stop_worker() {
 check_kuzco_logs() {
     if screen -list | grep -q "$SCREEN_NAME"; then
         log_message "Attaching to the Kuzco worker screen session..."
-        screen -r "$SCREEN_NAME"
+        screen -d -r "$SCREEN_NAME"
     else
         log_message "No active Kuzco worker session found!"
     fi
